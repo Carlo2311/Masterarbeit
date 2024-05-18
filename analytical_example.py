@@ -22,13 +22,29 @@ class AnalyticalExample():
         for i, x in enumerate(samples_x):
             component_1[i, :] = 1.25 * self.y - (5 * np.sin(np.pi * x) ** 2 + 5 * x - 2.5)
             component_2[i, :] = 1.25 * self.y - (5 * np.sin(np.pi * x) ** 2 - 5 * x + 2.5)
-            pdf_values_1[i, :] = 0.5 * self.normal_distribution.pdf(component_1[i, :])
-            pdf_values_2[i, :] = 0.75 * self.normal_distribution.pdf(component_2[i, :])
-            pdf[i, :] = pdf_values_1[i, :] + pdf_values_2[i, :]
-            mean_1[i] = self.y[np.argmax(pdf_values_1[i, :])]
-            mean_2[i] = self.y[np.argmax(pdf_values_2[i, :])]
+            pdf_values_1[i, :] = self.normal_distribution.pdf(component_1[i, :])
+            pdf_values_2[i, :] = self.normal_distribution.pdf(component_2[i, :])
+            pdf[i, :] = 0.5 * pdf_values_1[i, :] + 0.75 * pdf_values_2[i, :]
 
-        return pdf, mean_1, mean_2
+            pdf_norm_1 = pdf_values_1[i, :] / np.sum(pdf_values_1[i, :])
+            pdf_norm_2 = pdf_values_2[i, :] / np.sum(pdf_values_2[i, :])
+            pdf_norm = pdf[i, :] / np.sum(pdf[i, :])
+
+            mean_1 = np.sum(self.y * pdf_norm_1) 
+            mean_2 = np.sum(self.y * pdf_norm_2) 
+            mean_12 = np.sum(self.y * pdf_norm)    
+            sigma_1 = np.sqrt(np.sum(pdf_norm_1 * (self.y - mean_1) ** 2))
+            sigma_2 = np.sqrt(np.sum(pdf_norm_2 * (self.y - mean_2) ** 2))
+            sigma_12 = np.sqrt(np.sum(pdf_norm * (self.y - mean_12) ** 2))
+
+            # test
+            dist = cp.Normal(mean_1, sigma_1)
+            pdf_val = dist.pdf(self.y)
+            # plt.figure()
+            # plt.plot(self.y, pdf_val)
+            # plt.show()
+
+        return pdf, mean_1, mean_2, sigma_1, sigma_2
 
     def create_data_points(self, pdf, n_samples):
         pdf_normalized = pdf / np.sum(pdf, axis=1, keepdims=True) # normalize PDF

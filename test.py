@@ -1,46 +1,42 @@
-import numpy as np
-from scipy.optimize import minimize
 import chaospy as cp
+import numpy as np
 
-# Define the likelihood function
-def likelihood(c, x, y, sigma, expansion, z, w):
-    N_Q = len(z)
-    mu = np.sum([c[alpha] * psi(alpha, x, expansion, z) for alpha in range(len(c))], axis=0)
-    residual = y - mu
-    return -np.sum([np.exp(-0.5 * (residual[j] / sigma)**2) / (np.sqrt(2 * np.pi) * sigma) * w[j] for j in range(N_Q)])
+# Parameters for the two normal distributions (modes)
+mean_1 = 0
+sigma_1 = 1
+mean_2 = 4
+sigma_2 = 1
 
-# Define your psi function
-def psi(alpha, x, expansion, z):
-    return c(alpha, x, expansion) * expansion[alpha].evaluate(z)
+# Create normal distributions for the two modes
+dist_1 = cp.Normal(mean_1, sigma_1)
+dist_2 = cp.Normal(mean_2, sigma_2)
 
-# Define your polynomial chaos expansion coefficients
-def c(alpha, x, expansion):
-    i, j = alpha
-    return np.sum(expansion[i, j] * x ** i for i in range(expansion.shape[0]))
+# Define weights for the two modes
+weight_1 = 0.5
+weight_2 = 0.5
 
-# Define your input variable distribution
-distribution = cp.Normal()
+# Create a bimodal distribution by combining the two modes
+dist_bimodal = cp.J(dist_1, dist_2)
 
-# Define your polynomial chaos expansion degree
-p = 5
+# Define a custom function to calculate the PDF of the bimodal distribution
+def bimodal_pdf(x):
+    return weight_1 * dist_1.pdf(x[0]) + weight_2 * dist_2.pdf(x[1])
 
-# Generate polynomial chaos expansion basis
-expansion = cp.monomial(start=0, stop=p, dimensions=x.shape[0] + 1, graded=True)
+# Assign the custom PDF function to the bimodal distribution
+dist_bimodal._pdf = bimodal_pdf
 
-# Initial guess for coefficients c
-initial_c = np.zeros(expansion.shape)
+# Generate some samples from the bimodal distribution
+samples = dist_bimodal.sample(1000)
 
-# Additional parameters
-x = ...  # Your input data
-y = ...  # Your output data
-sigma = ...  # Given sigma
-z = np.random.randn(100)  # Generating standard normal distributed random variable z
-w = ...  # Your weights
+# Calculate the probability density function (PDF) of the bimodal distribution
+pdf_values = bimodal_pdf(samples)
 
-# Run optimization using BFGS
-result = minimize(likelihood, initial_c, args=(x, y, sigma, expansion, z, w), method='BFGS')
-
-# Extract optimized coefficients
-optimized_c = result.x
-
-print("Optimized coefficients:", optimized_c)
+# Plot the histogram of the samples and compare it with the PDF
+import matplotlib.pyplot as plt
+plt.hist(samples[0], bins=50, density=True, alpha=0.5, label='Sampled PDF')
+plt.scatter(samples[0], pdf_values, label='True PDF')
+plt.xlabel('x')
+plt.ylabel('Probability Density')
+plt.title('Bimodal Probability Density Function')
+plt.legend()
+plt.show()
