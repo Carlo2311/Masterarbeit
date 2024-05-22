@@ -18,6 +18,10 @@ class AnalyticalExample():
         pdf = np.zeros((len(samples_x), len(self.y)))
         mean_1 = np.zeros(len(samples_x))
         mean_2 = np.zeros(len(samples_x))
+        mean_12 = np.zeros(len(samples_x))
+        sigma_1 = np.zeros(len(samples_x))
+        sigma_2 = np.zeros(len(samples_x))
+        sigma_12 = np.zeros(len(samples_x))
 
         for i, x in enumerate(samples_x):
             component_1[i, :] = 1.25 * self.y - (5 * np.sin(np.pi * x) ** 2 + 5 * x - 2.5)
@@ -30,16 +34,16 @@ class AnalyticalExample():
             pdf_norm_2 = pdf_values_2[i, :] / np.sum(pdf_values_2[i, :])
             pdf_norm = pdf[i, :] / np.sum(pdf[i, :])
 
-            mean_1 = np.sum(self.y * pdf_norm_1) 
-            mean_2 = np.sum(self.y * pdf_norm_2) 
-            mean_12 = np.sum(self.y * pdf_norm)    
-            sigma_1 = np.sqrt(np.sum(pdf_norm_1 * (self.y - mean_1) ** 2))
-            sigma_2 = np.sqrt(np.sum(pdf_norm_2 * (self.y - mean_2) ** 2))
-            sigma_12 = np.sqrt(np.sum(pdf_norm * (self.y - mean_12) ** 2))
+            mean_1[i] = np.sum(self.y * pdf_norm_1) 
+            mean_2[i] = np.sum(self.y * pdf_norm_2) 
+            mean_12[i] = np.sum(self.y * pdf_norm)    
+            sigma_1[i] = np.sqrt(np.sum(pdf_norm_1 * (self.y - mean_1[i]) ** 2))
+            sigma_2[i] = np.sqrt(np.sum(pdf_norm_2 * (self.y - mean_2[i]) ** 2))
+            sigma_12[i] = np.sqrt(np.sum(pdf_norm * (self.y - mean_12[i]) ** 2))
 
             # test
-            dist = cp.Normal(mean_1, sigma_1)
-            pdf_val = dist.pdf(self.y)
+            # dist = cp.Normal(mean_1, sigma_1)
+            # pdf_val = dist.pdf(self.y)
             # plt.figure()
             # plt.plot(self.y, pdf_val)
             # plt.show()
@@ -77,15 +81,15 @@ class AnalyticalExample():
         plt.legend()
         plt.grid()
         # tikzplotlib.save(rf"tex_files\analtical_example2.tex")
-        plt.show()
+        # plt.show()
     
     def plot_pdf(self, pdf, samples_x):
         for i, x in enumerate(samples_x):
-            plt.figure(i)
+            plt.figure()
             plt.plot(self.y, pdf[i,:])
             plt.title(f'x = {x}')
             plt.xlabel('y')
             plt.ylabel('PDF')
             plt.grid()
             #tikzplotlib.save(rf"tex_files\example_pdf_{x}.tex")
-        plt.show()
+        # plt.show()
