@@ -1,17 +1,21 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 import chaospy as cp
-import tikzplotlib
-from analytical_example import AnalyticalExample
-from spce import SPCE
 
 
 n_samples = 800
 dist_X = cp.Uniform(0, 1)
-p = 3
+p = 1
 dist_Z = cp.Normal(0, 1)
 dist_joint = cp.J(dist_X, dist_Z)
 poly = cp.generate_expansion(p, dist_joint)
+
+a = np.array([1])
+b = np.array([4, 5, 6, 7])
+c = np.array([2, 2, 2])
+test = c[:, np.newaxis] * poly(a,b)
+
+
 x = np.linspace(0, 6, 1000)
 y = np.sin(x)
 surrogate = cp.fit_regression(poly, [x, np.zeros(len(x))], y)

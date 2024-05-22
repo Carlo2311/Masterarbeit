@@ -11,42 +11,33 @@ class AnalyticalExample():
         self.normal_distribution = cp.Normal(0, 1)
 
     def calculate_pdf(self, samples_x):
-        component_1 = np.zeros((len(samples_x), len(self.y)))
-        component_2 = np.zeros((len(samples_x), len(self.y)))
-        pdf_values_1 = np.zeros((len(samples_x), len(self.y)))
-        pdf_values_2 = np.zeros((len(samples_x), len(self.y)))
-        pdf = np.zeros((len(samples_x), len(self.y)))
-        mean_1 = np.zeros(len(samples_x))
-        mean_2 = np.zeros(len(samples_x))
-        mean_12 = np.zeros(len(samples_x))
-        sigma_1 = np.zeros(len(samples_x))
-        sigma_2 = np.zeros(len(samples_x))
-        sigma_12 = np.zeros(len(samples_x))
+        samples_x_np = np.asarray(samples_x)[:, np.newaxis]
+        component_1 = 1.25 * self.y - (5 * np.sin(np.pi * samples_x_np) ** 2 + 5 * samples_x_np - 2.5)
+        component_2 = 1.25 * self.y - (5 * np.sin(np.pi * samples_x_np) ** 2 - 5 * samples_x_np + 2.5)
 
-        for i, x in enumerate(samples_x):
-            component_1[i, :] = 1.25 * self.y - (5 * np.sin(np.pi * x) ** 2 + 5 * x - 2.5)
-            component_2[i, :] = 1.25 * self.y - (5 * np.sin(np.pi * x) ** 2 - 5 * x + 2.5)
-            pdf_values_1[i, :] = self.normal_distribution.pdf(component_1[i, :])
-            pdf_values_2[i, :] = self.normal_distribution.pdf(component_2[i, :])
-            pdf[i, :] = 0.5 * pdf_values_1[i, :] + 0.75 * pdf_values_2[i, :]
+        pdf_values_1 = self.normal_distribution.pdf(component_1)
+        pdf_values_2 = self.normal_distribution.pdf(component_2)
 
-            pdf_norm_1 = pdf_values_1[i, :] / np.sum(pdf_values_1[i, :])
-            pdf_norm_2 = pdf_values_2[i, :] / np.sum(pdf_values_2[i, :])
-            pdf_norm = pdf[i, :] / np.sum(pdf[i, :])
+        pdf = 0.5 * pdf_values_1 + 0.75 * pdf_values_2
 
-            mean_1[i] = np.sum(self.y * pdf_norm_1) 
-            mean_2[i] = np.sum(self.y * pdf_norm_2) 
-            mean_12[i] = np.sum(self.y * pdf_norm)    
-            sigma_1[i] = np.sqrt(np.sum(pdf_norm_1 * (self.y - mean_1[i]) ** 2))
-            sigma_2[i] = np.sqrt(np.sum(pdf_norm_2 * (self.y - mean_2[i]) ** 2))
-            sigma_12[i] = np.sqrt(np.sum(pdf_norm * (self.y - mean_12[i]) ** 2))
+        pdf_norm_1 = pdf_values_1 / np.sum(pdf_values_1, axis=1)[:, np.newaxis]
+        pdf_norm_2 = pdf_values_2 / np.sum(pdf_values_2, axis=1)[:, np.newaxis]
+        pdf_norm = pdf / np.sum(pdf, axis=1)[:, np.newaxis]
 
-            # test
-            # dist = cp.Normal(mean_1, sigma_1)
-            # pdf_val = dist.pdf(self.y)
-            # plt.figure()
-            # plt.plot(self.y, pdf_val)
-            # plt.show()
+        mean_1 = np.sum(self.y * pdf_norm_1, axis=1)
+        mean_2 = np.sum(self.y * pdf_norm_2, axis=1)
+        mean_12 = np.sum(self.y * pdf_norm, axis=1)
+
+        sigma_1 = np.sqrt(np.sum(pdf_norm_1 * (self.y - mean_1[:, np.newaxis]) ** 2, axis=1))
+        sigma_2 = np.sqrt(np.sum(pdf_norm_2 * (self.y - mean_2[:, np.newaxis]) ** 2, axis=1))
+        sigma_12 = np.sqrt(np.sum(pdf_norm * (self.y - mean_12[:, np.newaxis]) ** 2, axis=1))
+
+        # test
+        # dist = cp.Normal(mean_1, sigma_1)
+        # pdf_val = dist.pdf(self.y)
+        # plt.figure()
+        # plt.plot(self.y, pdf_val)
+        # plt.show()
 
         return pdf, mean_1, mean_2, sigma_1, sigma_2
 
@@ -81,7 +72,7 @@ class AnalyticalExample():
         plt.legend()
         plt.grid()
         # tikzplotlib.save(rf"tex_files\analtical_example2.tex")
-        # plt.show()
+        plt.show()
     
     def plot_pdf(self, pdf, samples_x):
         for i, x in enumerate(samples_x):
