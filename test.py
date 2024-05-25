@@ -10,9 +10,15 @@ dist_Z = cp.Normal(0, 1)
 dist_joint = cp.J(dist_X, dist_Z)
 poly = cp.generate_expansion(p, dist_joint)
 
-a = np.array([1])
+a = np.array([1,2])
 b = np.array([4, 5, 6, 7])
 c = np.array([2, 2, 2])
+
+
+
+
+
+pol = poly(a,b)
 test = c[:, np.newaxis] * poly(a,b)
 
 

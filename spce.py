@@ -2,6 +2,8 @@ import numpy as np
 import chaospy as cp
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+import time
+import numpoly
 
 class SPCE():
 
@@ -20,21 +22,24 @@ class SPCE():
         def likelihood_function(c, N_q, sigma_noise):
             quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
 
-            likelihood_sum = 0
-            for i in range(self.n_samples):
-                likelihood = 0
+            likelihood = 0
+            z_j = quadrature_points[0]
+            w_j = quadrature_weights
 
-                z_j = quadrature_points[0]
-                w_j = quadrature_weights
-                pce_1 = c[:, np.newaxis] * self.poly(self.samples_x[i], z_j)
-                pce12 = np.sum(pce_1, axis=0)
-                likelihood = np.sum((1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-0.5 * ((self.y_values[i] - pce12) ** 2) / (sigma_noise ** 2))) * w_j)
+            # test = numpoly.sum([c[:, np.newaxis] * self.poly(self.samples_x[i], z_j) for i in range(self.n_samples)], axis=1)
 
-                likelihood_sum += np.log(likelihood)
+            pce = np.array([c[:, np.newaxis] * self.poly(self.samples_x[i], z_j) for i in range(self.n_samples)])
+            pce_sum = np.sum(pce, axis=1)
+            likelihood = np.sum((1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-0.5 * ((self.y_values[:, np.newaxis] - pce_sum) ** 2) / (sigma_noise ** 2))) * w_j, axis=1)
+            likelihood_sum = np.sum(np.log(likelihood))
 
             return -likelihood_sum
 
-        result = minimize(likelihood_function, c_initial, args=(N_q, sigma_noise), method='BFGS') #, options={'maxiter': 1}
+        start1 = time.time()
+        result = minimize(likelihood_function, c_initial, args=(N_q, sigma_noise), method='BFGS', options={'maxiter': 50}) #, options={'maxiter': 1}
+        end1 = time.time()
+        time1 = end1 - start1
+        print(time1)
         optimized_c = result.x
         
         return optimized_c
@@ -55,16 +60,24 @@ class SPCE():
 
     def start_c(self):
         surrogate = cp.fit_regression(self.poly, [self.samples_x, np.zeros(len(self.samples_x))], self.y_values)
-
         coeffs = self.poly.coefficients
         exponents = self.poly.exponents
-
-        mask = (exponents[:, 1] == 0)
-        coeffs_q0 = [coeffs[i] for i in range(len(coeffs)) if mask[i]]
-        exponents_q0 = [exponents[i] for i in range(len(exponents)) if mask[i]]
-        q0, q1 = cp.variable(2)
-        poly_q0 = sum(c * q0**e[0] for c, e in zip(coeffs_q0, exponents_q0))
-
+        terms_q0 = exponents[:, 1] == 0
+        coeffs_new = [coeffs[i] for i in range(len(coeffs)) if terms_q0[i]]
+        exp_new = exponents[terms_q0]
+        q0 = cp.variable(1)
+        poly_q0 = sum(c * q0**e[0] for c, e in zip(coeffs_new, exp_new))
         surrogate_q0 = cp.fit_regression(poly_q0, self.samples_x, self.y_values)
+        coef_q0 = surrogate_q0.coefficients
 
-        return surrogate_q0
+        sorted_coeffs = [0] * len(coeffs)
+        sorted_coeffs2 = [0] * len(coeffs)
+        for i, exp in enumerate(exp_new):
+            idx = np.where((exponents == exp).all(axis=1))[0][0]
+            sorted_coeffs[idx] = coef_q0[i]
+            sorted_coeffs2[idx] = coef_q0[i] * coeffs[idx]
+        
+        modified_poly = cp.polynomial(sorted_coeffs2)
+
+
+        return coef_q0
