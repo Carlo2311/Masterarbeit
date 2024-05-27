@@ -3,7 +3,10 @@ import chaospy as cp
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 import time
+import pandas as pd
 import numpoly
+from scipy.stats import gaussian_kde
+import random
 
 class SPCE():
 
@@ -16,8 +19,7 @@ class SPCE():
         self.dist_joint = dist_joint
         self.poly = cp.generate_expansion(self.p, self.dist_joint)
 
-    def compute_liklihood(self, dist_Z, sigma_noise, N_q):
-        c_initial = np.ones(self.poly.shape[0])
+    def compute_liklihood(self, dist_Z, sigma_noise, N_q, c_initial):
 
         def likelihood_function(c, N_q, sigma_noise):
             quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
@@ -45,21 +47,32 @@ class SPCE():
         return optimized_c
 
 
-    def generate_dist_spce(self, n_samples_test, samples_x_test, samples_z_test, samples_eps_test, optimized_c):
+    def generate_dist_spce(self, n_samples_test, samples_x_test, samples_z_test, samples_eps_test, optimized_c, pdf, y, indices):
         dist_spce = np.zeros((len(samples_x_test), n_samples_test))
+        
         for x, sample in enumerate(samples_x_test):
-            for i in range(n_samples_test):
-                # dist_spce[x, i] = np.sum(optimized_c * poly(samples_x_test[i], samples_z_test[i])) + samples_eps_test[i]
-                dist_spce[x, i] = np.sum(optimized_c * self.poly(sample, samples_z_test[i])) + samples_eps_test[i] # fixed x
 
-            bin_edges = np.arange(-4, 8, 0.1)
-            plt.figure()
-            plt.hist(dist_spce[x, :], bins=bin_edges)
+            dist_spce1 = np.array([(np.sum(optimized_c[:, np.newaxis].T * self.poly(sample, samples_z_test[i]), axis=1) + samples_eps_test[0]) for i in range(n_samples_test)]).T
+
+            # kde = gaussian_kde(dist_spce[x,:])
+            # x_values_spce = np.linspace(min(dist_spce[x,:]), max(dist_spce[x,:]), 1000)  # Points on the x-axis
+            # dist_spce_pdf_values = kde(x_values_spce)
+            # plt.figure()
+            # plt.plot(x_values_spce, dist_spce_pdf_values, label='SPCE')
+
+            df=pd.DataFrame(dist_spce[x,:], columns=['SPCE'])
+            bin_edges = np.arange(-4, 8, 0.2)
+
+            plt.figure()            
+            plt.plot(y, pdf[indices[x],:], label='reference')
+            df.plot(kind='density', ax=plt.gca())
+            plt.hist(dist_spce[x, :], bins=bin_edges, density=True, label='distribution SPCE')
+            plt.xlim(-4, 8)
             plt.title(f'x = {sample}')
-        # plt.show()
+            plt.legend()            
+
 
     def start_c(self):
-        surrogate = cp.fit_regression(self.poly, [self.samples_x, np.zeros(len(self.samples_x))], self.y_values)
         coeffs = self.poly.coefficients
         exponents = self.poly.exponents
         terms_q0 = exponents[:, 1] == 0
@@ -68,16 +81,17 @@ class SPCE():
         q0 = cp.variable(1)
         poly_q0 = sum(c * q0**e[0] for c, e in zip(coeffs_new, exp_new))
         surrogate_q0 = cp.fit_regression(poly_q0, self.samples_x, self.y_values)
-        coef_q0 = surrogate_q0.coefficients
+        coef_q0 = np.array(surrogate_q0.coefficients)
 
-        sorted_coeffs = [0] * len(coeffs)
-        sorted_coeffs2 = [0] * len(coeffs)
-        for i, exp in enumerate(exp_new):
-            idx = np.where((exponents == exp).all(axis=1))[0][0]
-            sorted_coeffs[idx] = coef_q0[i]
-            sorted_coeffs2[idx] = coef_q0[i] * coeffs[idx]
-        
-        modified_poly = cp.polynomial(sorted_coeffs2)
+        c = np.zeros(self.poly.shape[0])
+        coef_q0_index = 0
+        for i, term in enumerate(self.poly):
+            term_str = str(term)
+            if "q1" in term_str:
+                c[i] = random.uniform(-20, 20)  
+            else:
+                c[i] = coef_q0[coef_q0_index]
+                coef_q0_index += 1
 
-
-        return coef_q0
+        return c
+    

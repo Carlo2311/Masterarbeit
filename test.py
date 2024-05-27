@@ -1,6 +1,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 import chaospy as cp
+import tikzplotlib
 
 
 n_samples = 800
