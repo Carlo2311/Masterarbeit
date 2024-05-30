@@ -7,6 +7,7 @@ import pandas as pd
 import numpoly
 from scipy.stats import gaussian_kde
 import random
+from sklearn.model_selection import cross_val_score
 
 class SPCE():
 
@@ -19,26 +20,33 @@ class SPCE():
         self.dist_joint = dist_joint
         self.poly = cp.generate_expansion(self.p, self.dist_joint)
 
-    def compute_liklihood(self, dist_Z, sigma_noise, N_q, c_initial):
+    def compute_optimal_c(self, dist_Z, sigma_noise, N_q, c_initial):
 
-        def likelihood_function(c, N_q, sigma_noise):
+        # c_initial = np.random.uniform(-10, 10, size=self.poly.shape[0])
+
+        def likelihood_function(c, N_q, sigma_noise, initial_likelihood):
             quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
 
             likelihood = 0
             z_j = quadrature_points[0]
             w_j = quadrature_weights
+            
+            poly_matrix = self.poly(self.samples_x[:, np.newaxis], z_j)
+            pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
 
-            # test = numpoly.sum([c[:, np.newaxis] * self.poly(self.samples_x[i], z_j) for i in range(self.n_samples)], axis=1)
+            # pce = np.array([c[:, np.newaxis] * self.poly(self.samples_x[i], z_j) for i in range(self.n_samples)])
+            # pce_sum = np.sum(pce, axis=1)
 
-            pce = np.array([c[:, np.newaxis] * self.poly(self.samples_x[i], z_j) for i in range(self.n_samples)])
-            pce_sum = np.sum(pce, axis=1)
-            likelihood = np.sum((1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-0.5 * ((self.y_values[:, np.newaxis] - pce_sum) ** 2) / (sigma_noise ** 2))) * w_j, axis=1)
+            likelihood = np.sum((1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((self.y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j), axis=1)
             likelihood_sum = np.sum(np.log(likelihood))
 
-            return -likelihood_sum
+            normalized_likelihood = -likelihood_sum / initial_likelihood
 
+            return normalized_likelihood
+
+        initial_likelihood = likelihood_function(c_initial, N_q, sigma_noise, 1)
         start1 = time.time()
-        result = minimize(likelihood_function, c_initial, args=(N_q, sigma_noise), method='BFGS', options={'maxiter': 50}) #, options={'maxiter': 1}
+        result = minimize(likelihood_function, c_initial, args=(N_q, sigma_noise, initial_likelihood), method='BFGS') #, options={'maxiter': 1}
         end1 = time.time()
         time1 = end1 - start1
         print(time1)
@@ -47,25 +55,31 @@ class SPCE():
         return optimized_c
 
 
-    def generate_dist_spce(self, n_samples_test, samples_x_test, samples_z_test, samples_eps_test, optimized_c, pdf, y, indices):
-        dist_spce = np.zeros((len(samples_x_test), n_samples_test))
+    def generate_dist_spce(self, n_samples, samples_x, samples_z, samples_eps, c):
         
-        for x, sample in enumerate(samples_x_test):
+        poly_matrix = self.poly(samples_x[:, np.newaxis], samples_z) 
+        dist_spce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0) + samples_eps
 
-            dist_spce1 = np.array([(np.sum(optimized_c[:, np.newaxis].T * self.poly(sample, samples_z_test[i]), axis=1) + samples_eps_test[0]) for i in range(n_samples_test)]).T
+        # dist_spce1 = np.zeros((len(samples_x), n_samples))
+        # for x, sample in enumerate(samples_x):
+        #     dist_spce1[x,:] = np.array([(np.sum(c[:, np.newaxis].T * self.poly(sample, samples_z[i]), axis=1) + samples_eps[i]) for i in range(n_samples)]).T
 
-            # kde = gaussian_kde(dist_spce[x,:])
-            # x_values_spce = np.linspace(min(dist_spce[x,:]), max(dist_spce[x,:]), 1000)  # Points on the x-axis
-            # dist_spce_pdf_values = kde(x_values_spce)
-            # plt.figure()
-            # plt.plot(x_values_spce, dist_spce_pdf_values, label='SPCE')
+        return dist_spce
 
-            df=pd.DataFrame(dist_spce[x,:], columns=['SPCE'])
+    def plot_distribution(self, dist_spce, y, pdf, indices, samples_x):
+            
+        for x, sample in enumerate(samples_x):
+            kde = gaussian_kde(dist_spce[x,:])
+            x_values_spce = np.linspace(min(dist_spce[x,:]), max(dist_spce[x,:]), 1000)  # Points on the x-axis
+            dist_spce_pdf_values = kde(x_values_spce)
+
+            # df=pd.DataFrame(dist_spce[x,:], columns=['SPCE'])
             bin_edges = np.arange(-4, 8, 0.2)
 
             plt.figure()            
             plt.plot(y, pdf[indices[x],:], label='reference')
-            df.plot(kind='density', ax=plt.gca())
+            plt.plot(x_values_spce, dist_spce_pdf_values, label='SPCE')
+            # df.plot(kind='density', ax=plt.gca())
             plt.hist(dist_spce[x, :], bins=bin_edges, density=True, label='distribution SPCE')
             plt.xlim(-4, 8)
             plt.title(f'x = {sample}')
@@ -88,10 +102,22 @@ class SPCE():
         for i, term in enumerate(self.poly):
             term_str = str(term)
             if "q1" in term_str:
-                c[i] = random.uniform(-20, 20)  
+                c[i] = np.random.uniform(-10, 10)  
             else:
                 c[i] = coef_q0[coef_q0_index]
                 coef_q0_index += 1
 
         return c
+    
+
+    def compute_error(self):
+        n_test = 1000
+        dist_X_test = cp.Uniform(0, 1)
+        samples_x_test = dist_X_test.sample(size=n_test)     
+
+
+    
+    def compute_optimal_sigma(self):
+
+        c_k = self.compute_optimal_c()
     

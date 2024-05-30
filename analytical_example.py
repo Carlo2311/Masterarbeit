@@ -40,13 +40,30 @@ class AnalyticalExample():
         # plt.show()
 
         return pdf, mean_1, mean_2, sigma_1, sigma_2
+    
+    def create_data_points1(self, mean_1, mean_2, sigma_1, sigma_2):
 
-    def create_data_points(self, pdf, n_samples):
+        dist_samples = cp.Uniform(0, 1)
+        samples = dist_samples.sample(size=self.n_samples) 
+        samples_y = np.zeros(self.n_samples)
+
+        for i, sample in enumerate(samples):
+            if sample <= 0.4:
+                dist = cp.Normal(mean_1[i], sigma_1[i])
+                samples_y[i] = dist.sample(1)
+            else:
+                dist = cp.Normal(mean_2[i], sigma_2[i])
+                samples_y[i] = dist.sample(1)
+
+        return samples_y
+
+
+    def create_data_points(self, pdf):
         pdf_normalized = pdf / np.sum(pdf, axis=1, keepdims=True) # normalize PDF
         cdf = np.cumsum(pdf_normalized, axis=1) # CDF
-        random_numbers = np.random.rand(n_samples) # uniform numbers between 0 and 1
-        samples_y = np.zeros(n_samples)
-        for i in range(n_samples):
+        random_numbers = np.random.rand(self.n_samples) # uniform numbers between 0 and 1
+        samples_y = np.zeros(self.n_samples)
+        for i in range(self.n_samples):
             samples_y[i] = np.interp(random_numbers[i], cdf[i], self.y) # inverse of the CDF to map uniform random numbers to values
 
         return samples_y
