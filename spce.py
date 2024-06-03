@@ -5,9 +5,12 @@ from scipy.optimize import minimize
 import time
 import pandas as pd
 import numpoly
+from scipy import stats
 from scipy.stats import gaussian_kde
 import random
 from sklearn.model_selection import cross_val_score
+from scipy.stats import norm
+from scipy.integrate import quad
 
 class SPCE():
 
@@ -55,7 +58,7 @@ class SPCE():
         return optimized_c
 
 
-    def generate_dist_spce(self, n_samples, samples_x, samples_z, samples_eps, c):
+    def generate_dist_spce(self, samples_x, samples_z, samples_eps, c):
         
         poly_matrix = self.poly(samples_x[:, np.newaxis], samples_z) 
         dist_spce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0) + samples_eps
@@ -66,9 +69,12 @@ class SPCE():
 
         return dist_spce
 
-    def plot_distribution(self, dist_spce, y, pdf, indices, samples_x):
+    def plot_distribution(self, dist_spce, y, pdf, samples_x, samples_y_test): #, samples_y_test
+
+        samples_x_i = samples_x[:4]
+        indices = [np.abs(samples_x - value).argmin() for value in samples_x_i]
             
-        for x, sample in enumerate(samples_x):
+        for x, sample in enumerate(samples_x_i):
             kde = gaussian_kde(dist_spce[x,:])
             x_values_spce = np.linspace(min(dist_spce[x,:]), max(dist_spce[x,:]), 1000)  # Points on the x-axis
             dist_spce_pdf_values = kde(x_values_spce)
@@ -80,7 +86,8 @@ class SPCE():
             plt.plot(y, pdf[indices[x],:], label='reference')
             plt.plot(x_values_spce, dist_spce_pdf_values, label='SPCE')
             # df.plot(kind='density', ax=plt.gca())
-            plt.hist(dist_spce[x, :], bins=bin_edges, density=True, label='distribution SPCE')
+            plt.hist(samples_y_test[x,:], bins=bin_edges, density=True, alpha=0.5, label='distribution reference')
+            plt.hist(dist_spce[x, :], bins=bin_edges, density=True, alpha=0.5, label='distribution SPCE')
             plt.xlim(-4, 8)
             plt.title(f'x = {sample}')
             plt.legend()            
@@ -110,10 +117,20 @@ class SPCE():
         return c
     
 
-    def compute_error(self):
-        n_test = 1000
-        dist_X_test = cp.Uniform(0, 1)
-        samples_x_test = dist_X_test.sample(size=n_test)     
+    def compute_error(self, dist_spce, samples_y, samples_y_all):
+
+        u = np.linspace(0, 1, 1000)
+
+        squared_diff = (np.quantile(dist_spce, u, axis=1) - np.quantile(samples_y, u, axis=1)) ** 2
+        d_ws_i = np.trapz(squared_diff, u, axis=1)
+        d_ws = np.sum(d_ws_i) / d_ws_i.shape[0]
+
+        variance = np.var(samples_y_all)
+        error = d_ws / variance
+
+        return error
+
+
 
 
     

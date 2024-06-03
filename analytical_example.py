@@ -32,6 +32,7 @@ class AnalyticalExample():
         sigma_2 = np.sqrt(np.sum(pdf_norm_2 * (self.y - mean_2[:, np.newaxis]) ** 2, axis=1))
         sigma_12 = np.sqrt(np.sum(pdf_norm * (self.y - mean_12[:, np.newaxis]) ** 2, axis=1))
 
+
         # test
         # dist = cp.Normal(mean_1, sigma_1)
         # pdf_val = dist.pdf(self.y)
@@ -41,24 +42,38 @@ class AnalyticalExample():
 
         return pdf, mean_1, mean_2, sigma_1, sigma_2
     
-    def create_data_points1(self, mean_1, mean_2, sigma_1, sigma_2):
+    def create_data_points(self, mean_1, mean_2, sigma_1, sigma_2, samples_plot, samples_x):
 
-        dist_samples = cp.Uniform(0, 1)
-        samples = dist_samples.sample(size=self.n_samples) 
-        samples_y = np.zeros(self.n_samples)
+        dist_samples_uni = cp.Uniform(0, 1)
+        
+        samples_y = np.zeros((samples_x.shape[0], samples_plot))
 
-        for i, sample in enumerate(samples):
-            if sample <= 0.4:
-                dist = cp.Normal(mean_1[i], sigma_1[i])
-                samples_y[i] = dist.sample(1)
-            else:
-                dist = cp.Normal(mean_2[i], sigma_2[i])
-                samples_y[i] = dist.sample(1)
+        for i in range(samples_x.shape[0]):
+            samples_uni = dist_samples_uni.sample(size=samples_plot) 
+            mask = samples_uni <= 0.4
+            dist_1 = cp.Normal(mean_1[i], sigma_1[i])
+            dist_2 = cp.Normal(mean_2[i], sigma_2[i])
+            samples_1 = dist_1.sample(samples_plot)
+            samples_2 = dist_2.sample(samples_plot)
+            samples_y[i, mask] = samples_1[mask]
+            samples_y[i, ~mask] = samples_2[~mask]
+
+        # dist_samples = cp.Uniform(0, 1)
+        # samples = dist_samples.sample(size=samples_x.shape[0]) 
+        # samples_y = np.zeros(samples_x.shape[0])
+
+        # for i, sample in enumerate(samples):
+        #     if sample <= 0.4:
+        #         dist = cp.Normal(mean_1[i], sigma_1[i])
+        #         samples_y[i] = dist.sample(samples_plot)
+        #     else:
+        #         dist = cp.Normal(mean_2[i], sigma_2[i])
+        #         samples_y[i] = dist.sample(samples_plot)
 
         return samples_y
 
 
-    def create_data_points(self, pdf):
+    def create_data_points1(self, pdf):
         pdf_normalized = pdf / np.sum(pdf, axis=1, keepdims=True) # normalize PDF
         cdf = np.cumsum(pdf_normalized, axis=1) # CDF
         random_numbers = np.random.rand(self.n_samples) # uniform numbers between 0 and 1
