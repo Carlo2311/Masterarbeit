@@ -1,16 +1,17 @@
 import numpy as np
 import chaospy as cp
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
+from scipy.optimize import minimize, differential_evolution
 import time
 import pandas as pd
 import numpoly
 from scipy import stats
 from scipy.stats import gaussian_kde
 import random
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
 from scipy.stats import norm
 from scipy.integrate import quad
+from bayes_opt import BayesianOptimization
 
 class SPCE():
 
@@ -23,37 +24,46 @@ class SPCE():
         self.dist_joint = dist_joint
         self.poly = cp.generate_expansion(self.p, self.dist_joint)
 
-    def compute_optimal_c(self, dist_Z, sigma_noise, N_q, c_initial):
+    def likelihood_function(self, c, samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood):
 
-        # c_initial = np.random.uniform(-10, 10, size=self.poly.shape[0])
+        quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
 
-        def likelihood_function(c, N_q, sigma_noise, initial_likelihood):
-            quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
+        # likelihood = 0
+        z_j = quadrature_points[0]
+        w_j = quadrature_weights
+        
+        poly_matrix = self.poly(samples_x[:, np.newaxis], z_j)
+        pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
 
-            likelihood = 0
-            z_j = quadrature_points[0]
-            w_j = quadrature_weights
-            
-            poly_matrix = self.poly(self.samples_x[:, np.newaxis], z_j)
-            pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
+        # pce = np.array([c[:, np.newaxis] * self.poly(self.samples_x[i], z_j) for i in range(self.n_samples)])
+        # pce_sum = np.sum(pce, axis=1)
 
-            # pce = np.array([c[:, np.newaxis] * self.poly(self.samples_x[i], z_j) for i in range(self.n_samples)])
-            # pce_sum = np.sum(pce, axis=1)
+        likelihood_quadrature = (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j)
+        likelihood = np.sum(likelihood_quadrature, axis=1)
+        likelihood_sum = np.sum(np.log(likelihood))
 
-            likelihood = np.sum((1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((self.y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j), axis=1)
-            likelihood_sum = np.sum(np.log(likelihood))
+        normalized_likelihood_i = -likelihood_sum / initial_likelihood
 
-            normalized_likelihood = -likelihood_sum / initial_likelihood
+        normalized_likelihood.append(normalized_likelihood_i)
 
-            return normalized_likelihood
+        return normalized_likelihood_i
 
-        initial_likelihood = likelihood_function(c_initial, N_q, sigma_noise, 1)
-        start1 = time.time()
-        result = minimize(likelihood_function, c_initial, args=(N_q, sigma_noise, initial_likelihood), method='BFGS') #, options={'maxiter': 1}
-        end1 = time.time()
-        time1 = end1 - start1
-        print(time1)
+    def compute_optimal_c(self, samples_x, y_values, dist_Z, sigma_noise, N_q, c_initial):
+
+        normalized_likelihood = []
+        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma_noise, dist_Z, 1, normalized_likelihood)
+        start = time.time()
+        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood), method='BFGS') #, options={'maxiter': 1}
+        print('time = ', time.time() - start)
         optimized_c = result.x
+        print(result.message)
+
+        plt.figure()
+        plt.plot(normalized_likelihood[1:])
+        plt.xlabel('iteration')
+        plt.ylabel('normalized likelihood')
+        plt.yscale('log')
+        plt.show()
         
         return optimized_c
 
@@ -71,7 +81,7 @@ class SPCE():
 
     def plot_distribution(self, dist_spce, y, pdf, samples_x, samples_y_test): #, samples_y_test
 
-        samples_x_i = samples_x[:4]
+        samples_x_i = samples_x[:5]
         indices = [np.abs(samples_x - value).argmin() for value in samples_x_i]
             
         for x, sample in enumerate(samples_x_i):
@@ -88,6 +98,8 @@ class SPCE():
             # df.plot(kind='density', ax=plt.gca())
             plt.hist(samples_y_test[x,:], bins=bin_edges, density=True, alpha=0.5, label='distribution reference')
             plt.hist(dist_spce[x, :], bins=bin_edges, density=True, alpha=0.5, label='distribution SPCE')
+            plt.xlabel('y')
+            plt.ylabel('pdf')
             plt.xlim(-4, 8)
             plt.title(f'x = {sample}')
             plt.legend()            
@@ -120,21 +132,52 @@ class SPCE():
     def compute_error(self, dist_spce, samples_y, samples_y_all):
 
         u = np.linspace(0, 1, 1000)
-
         squared_diff = (np.quantile(dist_spce, u, axis=1) - np.quantile(samples_y, u, axis=1)) ** 2
         d_ws_i = np.trapz(squared_diff, u, axis=1)
         d_ws = np.sum(d_ws_i) / d_ws_i.shape[0]
-
         variance = np.var(samples_y_all)
         error = d_ws / variance
 
         return error
 
+    def cross_validation(self, sigma_noise, dist_Z, N_q, c_initial):
 
+        if self.n_samples < 200:
+            n_cv = 10
+        if self.n_samples >= 200 and self.n_samples < 1000:
+            n_cv = 5
+        if self.n_samples >= 1000:
+            n_cv = 3
 
+        kf = KFold(n_splits=n_cv, shuffle=True, random_state=42)
+        cv_scores = []
 
+        for train_index, val_index in kf.split(self.samples_x):
+            train_x = self.samples_x[train_index]
+            train_y = self.y_values[train_index]
+            c_opt = self.compute_optimal_c(train_x, train_y, dist_Z, sigma_noise, N_q, c_initial)
+            print('sigma = ', sigma_noise)
+            val_x = self.samples_x[val_index]
+            val_y = self.y_values[val_index]
+            normalized_likelihood=[]
+            likelihood = self.likelihood_function(c_opt, val_x, val_y, N_q, sigma_noise, dist_Z, 1, normalized_likelihood)
+            cv_scores.append(likelihood)
+            # print('cv_score = ', cv_scores[-1])
+
+        total_cv_score = np.sum(cv_scores)
+        print('total_cv_score = ', total_cv_score)
+        return total_cv_score
     
-    def compute_optimal_sigma(self):
 
-        c_k = self.compute_optimal_c()
+    def compute_optimal_sigma(self, dist_Z, N_q, c_initial):
+
+        def cv_score(sigma):
+            return -self.cross_validation(sigma, dist_Z, N_q, c_initial)
+ 
+        sigma_bounds = (0.15, 1)
+        optimizer = differential_evolution(cv_score, bounds=[sigma_bounds], strategy='best1bin', disp=True, maxiter=1)
+
+        optimal_sigma = optimizer.x[0]
+        return optimal_sigma
+
     
