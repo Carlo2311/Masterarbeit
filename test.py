@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import chaospy as cp
 # import tikzplotlib
-from analytical_example import AnalyticalExample
+from analytical_example_bimodal import AnalyticalExample
 from spce import SPCE
 import time
 

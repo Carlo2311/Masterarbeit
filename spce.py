@@ -1,7 +1,7 @@
 import numpy as np
 import chaospy as cp
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize, differential_evolution
+from scipy.optimize import minimize, differential_evolution, minimize_scalar
 import time
 import pandas as pd
 import numpoly
@@ -28,15 +28,11 @@ class SPCE():
 
         quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
 
-        # likelihood = 0
         z_j = quadrature_points[0]
         w_j = quadrature_weights
         
         poly_matrix = self.poly(samples_x[:, np.newaxis], z_j)
         pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
-
-        # pce = np.array([c[:, np.newaxis] * self.poly(self.samples_x[i], z_j) for i in range(self.n_samples)])
-        # pce_sum = np.sum(pce, axis=1)
 
         likelihood_quadrature = (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j)
         likelihood = np.sum(likelihood_quadrature, axis=1)
@@ -47,13 +43,45 @@ class SPCE():
         normalized_likelihood.append(normalized_likelihood_i)
 
         return normalized_likelihood_i
+    
+    def optimize_sigma(self, samples_x, y_values, dist_Z, N_q, sigma_initial, c_initial):
+        
+        def objective(sigma):
+            return self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma, dist_Z, initial_likelihood, [])
+        
+        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma_initial, dist_Z, 1, [])
+        result = minimize_scalar(objective, bounds=(1e-5, 10), method='bounded')
+        optimized_sigma = result.x
+        print("Optimized sigma:", optimized_sigma)
+        
+        return optimized_sigma
+    
+    def gradient_function(self, c, samples_x, y_values, N_q, sigma_noise, dist_Z):
+        quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
+
+        z_j = quadrature_points[0]
+        w_j = quadrature_weights
+
+        poly_matrix = self.poly(samples_x[:, np.newaxis], z_j)
+        pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
+
+        residuals = y_values[:, np.newaxis] - pce
+        likelihood_quadrature =  (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j)
+        likelihood = np.sum(likelihood_quadrature, axis=1)
+
+        grad_likelihood_quadrature = (likelihood_quadrature[:, :, np.newaxis] * residuals[:, :, np.newaxis] / sigma_noise ** 2 * poly_matrix[np.newaxis, :, :])
+        
+        grad_likelihood = np.sum(grad_likelihood_quadrature, axis=1)
+        gradient = np.sum(-grad_likelihood / likelihood[:, np.newaxis], axis=0)
+
+        return gradient
 
     def compute_optimal_c(self, samples_x, y_values, dist_Z, sigma_noise, N_q, c_initial):
 
         normalized_likelihood = []
         initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma_noise, dist_Z, 1, normalized_likelihood)
         start = time.time()
-        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood), method='BFGS') #, options={'maxiter': 1}
+        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood), method='BFGS', jac=self.gradient_function(c_initial, samples_x, y_values, N_q, sigma_noise, dist_Z)) #, options={'maxiter': 1}
         print('time = ', time.time() - start)
         optimized_c = result.x
         print(result.message)
@@ -73,10 +101,6 @@ class SPCE():
         poly_matrix = self.poly(samples_x[:, np.newaxis], samples_z) 
         dist_spce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0) + samples_eps
 
-        # dist_spce1 = np.zeros((len(samples_x), n_samples))
-        # for x, sample in enumerate(samples_x):
-        #     dist_spce1[x,:] = np.array([(np.sum(c[:, np.newaxis].T * self.poly(sample, samples_z[i]), axis=1) + samples_eps[i]) for i in range(n_samples)]).T
-
         return dist_spce
 
     def plot_distribution(self, dist_spce, y, pdf, samples_x, samples_y_test): #, samples_y_test
@@ -86,7 +110,7 @@ class SPCE():
             
         for x, sample in enumerate(samples_x_i):
             kde = gaussian_kde(dist_spce[x,:])
-            x_values_spce = np.linspace(min(dist_spce[x,:]), max(dist_spce[x,:]), 1000)  # Points on the x-axis
+            x_values_spce = np.linspace(min(dist_spce[x,:]), max(dist_spce[x,:]), 1000) 
             dist_spce_pdf_values = kde(x_values_spce)
 
             # df=pd.DataFrame(dist_spce[x,:], columns=['SPCE'])
@@ -96,8 +120,8 @@ class SPCE():
             plt.plot(y, pdf[indices[x],:], label='reference')
             plt.plot(x_values_spce, dist_spce_pdf_values, label='SPCE')
             # df.plot(kind='density', ax=plt.gca())
-            plt.hist(samples_y_test[x,:], bins=bin_edges, density=True, alpha=0.5, label='distribution reference')
-            plt.hist(dist_spce[x, :], bins=bin_edges, density=True, alpha=0.5, label='distribution SPCE')
+            # plt.hist(samples_y_test[x,:], bins=bin_edges, density=True, alpha=0.5, label='distribution reference')
+            # plt.hist(dist_spce[x, :], bins=bin_edges, density=True, alpha=0.5, label='distribution SPCE')
             plt.xlabel('y')
             plt.ylabel('pdf')
             plt.xlim(-4, 8)
@@ -129,13 +153,13 @@ class SPCE():
         return c
     
 
-    def compute_error(self, dist_spce, samples_y, samples_y_all):
+    def compute_error(self, dist_spce, samples_y):
 
         u = np.linspace(0, 1, 1000)
         squared_diff = (np.quantile(dist_spce, u, axis=1) - np.quantile(samples_y, u, axis=1)) ** 2
         d_ws_i = np.trapz(squared_diff, u, axis=1)
         d_ws = np.sum(d_ws_i) / d_ws_i.shape[0]
-        variance = np.var(samples_y_all)
+        variance = np.var(samples_y)
         error = d_ws / variance
 
         return error
@@ -179,5 +203,6 @@ class SPCE():
 
         optimal_sigma = optimizer.x[0]
         return optimal_sigma
+    
 
     
