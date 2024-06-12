@@ -8,7 +8,7 @@ import time
 
 n_samples = 800
 dist_X = cp.Uniform(0, 1)
-samples_x = dist_X.sample(size=n_samples,) 
+samples_x = dist_X.sample(size=n_samples) 
 samples_x_i = np.array([0.2, 0.5, 0.75, 0.9])
 indices = [np.abs(samples_x - value).argmin() for value in samples_x_i]
 y = np.linspace(-4, 8, 1000)
@@ -16,17 +16,17 @@ y = np.linspace(-4, 8, 1000)
 example = AnalyticalExample(n_samples, y)
 pdf, mean, sigma = example.calculate_pdf(samples_x)
 samples_y = example.create_data_points(mean, sigma, 1, samples_x).reshape(-1)
-example.plot_example(samples_x, samples_y, mean, pdf, indices)
-example.plot_pdf(pdf, samples_x_i, indices)
+# example.plot_example(samples_x, samples_y, mean, pdf, indices)
+# example.plot_pdf(pdf, samples_x_i, indices)
 
 
 ### SPCE
 p = 4
-sigma_noise = 0.6
+sigma_noise = 0.2
 # dist_Z = cp.Normal(0, 1)
 dist_Z = cp.Uniform(-1, 1)
 dist_joint = cp.J(dist_X, dist_Z)
-N_q = 10
+N_q = 15
 
 print('sigma = ', sigma_noise)
 
@@ -40,7 +40,7 @@ optimized_c = spce.compute_optimal_c(samples_x, samples_y, dist_Z, sigma_noise, 
 # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_beta/sigma_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy', sigma_noise)
 # optimized_c_new = spce.compute_optimal_c(samples_x, samples_y, dist_Z, sigma_noise, N_q, optimized_c)
 np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_beta/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy', optimized_c)
-# optimized_c = np.load(fr'solutions_example_beta/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy') 
+# optimized_c = np.load(fr'solutions_example_beta/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy') # sigma 0.2 ist gut
 
 
 # test surrogate 

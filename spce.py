@@ -12,6 +12,7 @@ from sklearn.model_selection import KFold
 from scipy.stats import norm
 from scipy.integrate import quad
 from bayes_opt import BayesianOptimization
+from gaussian_process import Gaussian_Process
 
 class SPCE():
 
@@ -56,32 +57,34 @@ class SPCE():
         
         return optimized_sigma
     
-    def gradient_function(self, c, samples_x, y_values, N_q, sigma_noise, dist_Z):
-        quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
-
-        z_j = quadrature_points[0]
-        w_j = quadrature_weights
-
-        poly_matrix = self.poly(samples_x[:, np.newaxis], z_j)
-        pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
-
-        residuals = y_values[:, np.newaxis] - pce
-        likelihood_quadrature =  (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j)
-        likelihood = np.sum(likelihood_quadrature, axis=1)
-
-        grad_likelihood_quadrature = (likelihood_quadrature[:, :, np.newaxis] * residuals[:, :, np.newaxis] / sigma_noise ** 2 * poly_matrix[np.newaxis, :, :])
-        
-        grad_likelihood = np.sum(grad_likelihood_quadrature, axis=1)
-        gradient = np.sum(-grad_likelihood / likelihood[:, np.newaxis], axis=0)
-
-        return gradient
 
     def compute_optimal_c(self, samples_x, y_values, dist_Z, sigma_noise, N_q, c_initial):
 
+        def gradient_function(c, samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood):
+            quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
+
+            z_j = quadrature_points[0]
+            w_j = quadrature_weights
+
+            poly_matrix = self.poly(samples_x[:, np.newaxis], z_j)
+            pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
+
+            nominator = y_values[:, np.newaxis] - pce
+            likelihood_quadrature =  (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j)
+
+            # gradient_likelihood = - self.poly(samples_x[:, np.newaxis], z_j) * nominator / (sigma_noise ** 2) * likelihood_quadrature       
+            gradient_likelihood = self.poly(samples_x[:, np.newaxis], z_j) * nominator / (sigma_noise ** 2) * likelihood_quadrature
+            gradient_sum = np.sum(gradient_likelihood, axis=2)
+            gradient = np.sum(gradient_sum, axis=1)
+   
+            # gradient = self.poly(samples_x[:, np.newaxis], z_j) * gradient_sum[np.newaxis,:, np.newaxis]
+
+            return gradient
+        
         normalized_likelihood = []
         initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma_noise, dist_Z, 1, normalized_likelihood)
         start = time.time()
-        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood), method='BFGS', jac=self.gradient_function(c_initial, samples_x, y_values, N_q, sigma_noise, dist_Z)) #, options={'maxiter': 1}
+        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function) #, options={'maxiter': 1}
         print('time = ', time.time() - start)
         optimized_c = result.x
         print(result.message)
@@ -103,22 +106,34 @@ class SPCE():
 
         return dist_spce
 
-    def plot_distribution(self, dist_spce, y, pdf, samples_x, samples_y_test): #, samples_y_test
+    def plot_distribution(self, dist_spce, y, pdf, samples_x, samples_y_test, mean_test, sigma_test): #, samples_y_test
 
         samples_x_i = samples_x[:5]
         indices = [np.abs(samples_x - value).argmin() for value in samples_x_i]
+
+        gpr_test = Gaussian_Process(samples_x, samples_y_test, mean_test, sigma_test)
+        mean_prediction_gpr, std_prediction_gpr = gpr_test.run()
+        gpr_test.plot_gpr()
             
         for x, sample in enumerate(samples_x_i):
+            ''' KDE for SPCE '''
             kde = gaussian_kde(dist_spce[x,:])
             x_values_spce = np.linspace(min(dist_spce[x,:]), max(dist_spce[x,:]), 1000) 
             dist_spce_pdf_values = kde(x_values_spce)
 
-            # df=pd.DataFrame(dist_spce[x,:], columns=['SPCE'])
+            ''' KDE for GPR '''
+            dist_gpr = cp.Normal(mean_prediction_gpr[x], std_prediction_gpr[x])
+            samples_gpr = dist_gpr.sample(size=1000)
+            kde = gaussian_kde(samples_gpr)
+            x_values_gpr = np.linspace(min(samples_gpr), max(samples_gpr), 1000) 
+            dist_gpr_pdf_values = kde(x_values_spce)
+
             bin_edges = np.arange(-4, 8, 0.2)
 
             plt.figure()            
             plt.plot(y, pdf[indices[x],:], label='reference')
             plt.plot(x_values_spce, dist_spce_pdf_values, label='SPCE')
+            plt.plot(x_values_gpr, dist_gpr_pdf_values, label='GPR')
             # df.plot(kind='density', ax=plt.gca())
             # plt.hist(samples_y_test[x,:], bins=bin_edges, density=True, alpha=0.5, label='distribution reference')
             # plt.hist(dist_spce[x, :], bins=bin_edges, density=True, alpha=0.5, label='distribution SPCE')
@@ -145,7 +160,7 @@ class SPCE():
         for i, term in enumerate(self.poly):
             term_str = str(term)
             if "q1" in term_str:
-                c[i] = np.random.uniform(-10, 10)  
+                c[i] = np.random.normal(-10, 10)  
             else:
                 c[i] = coef_q0[coef_q0_index]
                 coef_q0_index += 1

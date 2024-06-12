@@ -32,7 +32,7 @@ class AnalyticalExample():
         sigma_2 = np.sqrt(np.sum(pdf_norm_2 * (self.y - mean_2[:, np.newaxis]) ** 2, axis=1))
         sigma_12 = np.sqrt(np.sum(pdf_norm * (self.y - mean_12[:, np.newaxis]) ** 2, axis=1))
 
-        return pdf, mean_1, mean_2, sigma_1, sigma_2
+        return pdf, mean_1, mean_2, sigma_1, sigma_2, mean_12, sigma_12
     
     def create_data_points(self, mean_1, mean_2, sigma_1, sigma_2, samples_plot, samples_x):
 
