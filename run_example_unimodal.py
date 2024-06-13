@@ -7,9 +7,9 @@ from spce import SPCE
 from gaussian_process import Gaussian_Process
 import time
 
-n_samples = 800
+n_samples = 400
 dist_X = cp.Uniform(0, 1)
-samples_x = dist_X.sample(size=n_samples,) 
+samples_x = dist_X.sample(size=n_samples, rule='H') 
 samples_x_i = np.array([0.2, 0.5, 0.75, 0.9])
 indices = [np.abs(samples_x - value).argmin() for value in samples_x_i]
 y = np.linspace(-4, 8, 1000)
@@ -32,12 +32,12 @@ samples_y = example.create_data_points(mean, sigma, 1, samples_x).reshape(-1)
 ########################################################################################################################
 
 ### SPCE
-p = 4
+p = 2
 sigma_noise = 0.7
 # dist_Z = cp.Normal(0, 1)
 dist_Z = cp.Uniform(-1, 1)
 dist_joint = cp.J(dist_X, dist_Z)
-N_q = 15
+N_q = 5
 
 print('sigma = ', sigma_noise)
 
@@ -45,13 +45,17 @@ spce = SPCE(n_samples, p, samples_y.T, sigma_noise, samples_x, dist_joint)
 
 c_initial = spce.start_c()
 
-# optimized_c = spce.compute_optimal_c(samples_x, samples_y, dist_Z, sigma_noise, N_q, c_initial)
+sigma_range = (0.5, 10)
+# spce.plot_likelihood_vs_sigma(samples_x, samples_y, dist_Z, N_q, sigma_range, c_initial)
+
+optimized_c = spce.compute_optimal_c(samples_x, samples_y, dist_Z, sigma_noise, N_q, c_initial)
 # sigma_noise = spce.optimize_sigma(samples_x, samples_y, dist_Z, N_q, sigma_noise, optimized_c)[0]
 # sigma_noise = spce.compute_optimal_sigma(dist_Z, N_q, c_initial)
 # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_2/sigma_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy', sigma_noise)
 # optimized_c_new = spce.compute_optimal_c(samples_x, samples_y, dist_Z, sigma_noise, N_q, optimized_c)
 # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_2/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_gradient.npy', optimized_c)
-optimized_c = np.load(fr'solutions_example_2/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy') 
+# optimized_c = np.load(fr'solutions_example_2/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy') 
+# spce.plot_likelihood_vs_sigma(samples_x, samples_y, dist_Z, N_q, sigma_range, optimized_c)
 
 
 # test surrogate 
