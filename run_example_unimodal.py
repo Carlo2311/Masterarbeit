@@ -32,30 +32,30 @@ samples_y = example.create_data_points(mean, sigma, 1, samples_x).reshape(-1)
 ########################################################################################################################
 
 ### SPCE
-p = 2
+p = 4
 sigma_noise = 0.7
 # dist_Z = cp.Normal(0, 1)
 dist_Z = cp.Uniform(-1, 1)
 dist_joint = cp.J(dist_X, dist_Z)
-N_q = 5
+N_q = 15
 
 print('sigma = ', sigma_noise)
 
-spce = SPCE(n_samples, p, samples_y.T, sigma_noise, samples_x, dist_joint)
+spce = SPCE(n_samples, p, samples_y.T, sigma_noise, samples_x, dist_joint, N_q, dist_Z)
 
 c_initial = spce.start_c()
 
 sigma_range = (0.5, 10)
 # spce.plot_likelihood_vs_sigma(samples_x, samples_y, dist_Z, N_q, sigma_range, c_initial)
 
-optimized_c = spce.compute_optimal_c(samples_x, samples_y, dist_Z, sigma_noise, N_q, c_initial)
-# sigma_noise = spce.optimize_sigma(samples_x, samples_y, dist_Z, N_q, sigma_noise, optimized_c)[0]
-# sigma_noise = spce.compute_optimal_sigma(dist_Z, N_q, c_initial)
+optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, c_initial)
+# sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)[0]
+# sigma_noise = spce.compute_optimal_sigma(c_initial)
 # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_2/sigma_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy', sigma_noise)
-# optimized_c_new = spce.compute_optimal_c(samples_x, samples_y, dist_Z, sigma_noise, N_q, optimized_c)
+# optimized_c_new = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
 # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_2/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_gradient.npy', optimized_c)
 # optimized_c = np.load(fr'solutions_example_2/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy') 
-# spce.plot_likelihood_vs_sigma(samples_x, samples_y, dist_Z, N_q, sigma_range, optimized_c)
+# spce.plot_likelihood_vs_sigma(samples_x, samples_y, sigma_range, optimized_c)
 
 
 # test surrogate 

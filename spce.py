@@ -16,7 +16,7 @@ from gaussian_process import Gaussian_Process
 
 class SPCE():
 
-    def __init__(self, n_samples, p, y_values, sigma, x, dist_joint):
+    def __init__(self, n_samples, p, y_values, sigma, x, dist_joint, N_q, dist_Z):
         self.n_samples = n_samples
         self.p = p
         self.y_values = y_values
@@ -24,20 +24,18 @@ class SPCE():
         self.samples_x = x
         self.dist_joint = dist_joint
         self.poly = cp.generate_expansion(self.p, self.dist_joint)
+        self.quadrature_points, self.quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
+        self.z_j = self.quadrature_points[0]
+        self.w_j = self.quadrature_weights
 
-    def likelihood_function(self, c, samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood):
-
-        quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
-
-        z_j = quadrature_points[0]
-        w_j = quadrature_weights
+    def likelihood_function(self, c, samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood):
         
-        poly_matrix = self.poly(samples_x[:, np.newaxis], z_j)
+        poly_matrix = self.poly(samples_x[:, np.newaxis], self.z_j)
         pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
 
-        likelihood_quadrature = (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j)
+        likelihood_quadrature = (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j)
         likelihood = np.sum(likelihood_quadrature, axis=1)
-        likelihood_sum = np.sum(np.log(likelihood))
+        likelihood_sum = - np.sum(np.log(likelihood))
 
         normalized_likelihood_i = likelihood_sum / initial_likelihood
 
@@ -45,22 +43,22 @@ class SPCE():
 
         return likelihood_sum
     
-    def optimize_sigma(self, samples_x, y_values, dist_Z, N_q, sigma_initial, c_initial):
+    def optimize_sigma(self, samples_x, y_values, sigma_initial, c_initial):
         
         def objective(sigma):
-            return self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma, dist_Z, initial_likelihood, [])
+            return self.likelihood_function(c_initial, samples_x, y_values, sigma, initial_likelihood, [])
         
-        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma_initial, dist_Z, 1, [])
+        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_initial, 1, [])
         result = minimize_scalar(objective, bounds=(1e-5, 10), method='bounded')
         optimized_sigma = result.x
         print("Optimized sigma:", optimized_sigma)
         
         return optimized_sigma
     
-    def plot_likelihood_vs_sigma(self, samples_x, y_values, dist_Z, N_q, sigma_range, c_initial):
-        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma_range[0], dist_Z, 1, [])
+    def plot_likelihood_vs_sigma(self, samples_x, y_values, sigma_range, c_initial):
+        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_range[0], 1, [])
         sigma_values = np.linspace(sigma_range[0], sigma_range[1], 100)
-        likelihoods = [self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma, dist_Z, initial_likelihood, []) for sigma in sigma_values]
+        likelihoods = [self.likelihood_function(c_initial, samples_x, y_values,sigma, initial_likelihood, []) for sigma in sigma_values]
         
         plt.figure(figsize=(10, 6))
         plt.plot(sigma_values, likelihoods, label='likelihood')
@@ -71,21 +69,17 @@ class SPCE():
         plt.show()
     
 
-    def compute_optimal_c(self, samples_x, y_values, dist_Z, sigma_noise, N_q, c_initial):
+    def compute_optimal_c(self, samples_x, y_values, sigma_noise, c_initial):
 
-        def gradient_function(c, samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood):
-            quadrature_points, quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
+        def gradient_function(c, samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood):
 
-            z_j = quadrature_points[0]
-            w_j = quadrature_weights
-
-            poly_matrix = self.poly(samples_x[:, np.newaxis], z_j)
+            poly_matrix = self.poly(samples_x[:, np.newaxis], self.z_j)
             pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
 
             nominator = y_values[:, np.newaxis] - pce
-            likelihood_quadrature =  (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j)
+            likelihood_quadrature =  (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j)
 
-            grad_like =  self.poly(samples_x[:, np.newaxis], z_j) * nominator / (np.sqrt(2 * np.pi) * sigma_noise ** 3) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * w_j
+            grad_like =  self.poly(samples_x[:, np.newaxis], self.z_j) * nominator / (np.sqrt(2 * np.pi) * sigma_noise ** 3) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j
             grad_like_sum = np.sum(grad_like, axis=2)
             like = np.sum(likelihood_quadrature, axis=1)
             grad_test = np.sum((1 / (like)) * grad_like_sum, axis=1)
@@ -97,13 +91,13 @@ class SPCE():
 
         normalized_likelihood = []
         grad_initial = 1
-        grad_initial = gradient_function(c_initial, samples_x, y_values, N_q, sigma_noise, dist_Z, 1, normalized_likelihood)
-        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, N_q, sigma_noise, dist_Z, 1, normalized_likelihood)
+        # grad_initial = gradient_function(c_initial, samples_x, y_values, sigma_noise,  1, normalized_likelihood)
+        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_noise,  1, normalized_likelihood)
         
         start = time.time()
-        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood), method='BFGS') #, jac=gradient_function) #, options={'maxiter': 1}
+        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood), method='BFGS') #, jac=gradient_function) #, options={'maxiter': 1}
         print('hallo')
-        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, N_q, sigma_noise, dist_Z, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function)
+        # result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function)
         print('time = ', time.time() - start)
         optimized_c = result.x
         print(result.message)
@@ -218,7 +212,7 @@ class SPCE():
             val_x = self.samples_x[val_index]
             val_y = self.y_values[val_index]
             normalized_likelihood=[]
-            likelihood = self.likelihood_function(c_opt, val_x, val_y, N_q, sigma_noise, dist_Z, 1, normalized_likelihood)
+            likelihood = self.likelihood_function(c_opt, val_x, val_y, sigma_noise, 1, normalized_likelihood)
             cv_scores.append(likelihood)
             # print('cv_score = ', cv_scores[-1])
 
