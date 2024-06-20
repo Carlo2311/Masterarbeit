@@ -20,13 +20,13 @@ class Gaussian_Process():
         self.y = self.mean
 
         rng = np.random.RandomState(1)
-        training_indices = rng.choice(np.arange(self.y.size), size=50, replace=False)
+        training_indices = rng.choice(np.arange(self.y.size), size=100, replace=False)
         self.X_train, self.y_train = self.X[training_indices], self.y[training_indices]
 
         self.noise_std = np.mean(self.sigma)
 
         self.y_train_noisy = self.y_train + rng.normal(loc=0.0, scale=self.noise_std, size=self.y_train.shape)
-        kernel = RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2)) + WhiteKernel(noise_level=1.0, noise_level_bounds=(1e-5, 1e1))
+        kernel = RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2)) + WhiteKernel(noise_level=self.noise_std, noise_level_bounds=(1e-5, 1e1))
         gaussian_process = GaussianProcessRegressor(
             kernel=kernel, n_restarts_optimizer=9
         )
@@ -63,6 +63,6 @@ class Gaussian_Process():
         plt.legend()
         plt.xlabel("$x$")
         plt.ylabel("$f(x)$")
-        _ = plt.title("Gaussian process regression on a noisy dataset")
+        _ = plt.title("GPR")
         # plt.show()
 

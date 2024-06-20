@@ -22,15 +22,11 @@ class AnalyticalExample():
         samples_x_np = np.asarray(samples_x)[:, np.newaxis]
         component_1 = 1.25 * self.y - (5 * np.sin(np.pi * samples_x_np) ** 2 + 5 * samples_x_np - 2.5)
         
-        # Scale component_1 to the interval [0, 1]
-        # min_val, max_val = np.min(component_1), np.max(component_1)
-        # component_1_scaled = (component_1 - min_val) / (max_val - min_val)
-
         alpha, beta = self.alpha_beta_function(samples_x_np)
         pdf = np.zeros_like(component_1)
         for i in range(len(samples_x)):
             beta_distribution = cp.Beta(alpha[i], beta[i])
-            pdf[i] = beta_distribution.pdf(component_1[i])
+            pdf[i] = 0.5 / 0.4 * beta_distribution.pdf(component_1[i])
         pdf_norm = pdf / np.sum(pdf, axis=1)[:, np.newaxis]
         mean = np.sum(self.y * pdf_norm, axis=1)
         sigma = np.sqrt(np.sum(pdf_norm * (self.y - mean[:, np.newaxis]) ** 2, axis=1))

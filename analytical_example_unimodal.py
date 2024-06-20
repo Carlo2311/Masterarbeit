@@ -13,7 +13,8 @@ class AnalyticalExample():
     def calculate_pdf(self, samples_x):
         samples_x_np = np.asarray(samples_x)[:, np.newaxis]
         component_1 = 1.25 * self.y - (5 * np.sin(np.pi * samples_x_np) ** 2 + 5 * samples_x_np - 2.5)
-        pdf = self.normal_distribution.pdf(component_1)
+        pdf_values_1 = self.normal_distribution.pdf(component_1)
+        pdf = 0.5 * pdf_values_1 / 0.4
         pdf_norm = pdf / np.sum(pdf, axis=1)[:, np.newaxis]
         mean = np.sum(self.y * pdf_norm, axis=1)
         sigma = np.sqrt(np.sum(pdf_norm * (self.y - mean[:, np.newaxis]) ** 2, axis=1))

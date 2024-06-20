@@ -10,7 +10,7 @@ from scipy.stats import gaussian_kde
 import random
 from sklearn.model_selection import KFold
 from scipy.stats import norm
-from scipy.integrate import quad
+from scipy.integrate import trapz
 from bayes_opt import BayesianOptimization
 from gaussian_process import Gaussian_Process
 
@@ -30,6 +30,7 @@ class SPCE():
 
     def likelihood_function(self, c, samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood):
         
+        # poly_matrix = self.poly(samples_x[:, np.newaxis], self.z_j)
         poly_matrix = self.poly(samples_x[:, np.newaxis], self.z_j)
         pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
 
@@ -55,16 +56,15 @@ class SPCE():
         
         return optimized_sigma
     
-    def plot_likelihood_vs_sigma(self, samples_x, y_values, sigma_range, c_initial):
+    def plot_sigma(self, samples_x, y_values, sigma_range, c_initial):
         initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_range[0], 1, [])
         sigma_values = np.linspace(sigma_range[0], sigma_range[1], 100)
         likelihoods = [self.likelihood_function(c_initial, samples_x, y_values,sigma, initial_likelihood, []) for sigma in sigma_values]
         
         plt.figure(figsize=(10, 6))
-        plt.plot(sigma_values, likelihoods, label='likelihood')
+        plt.plot(sigma_values, likelihoods)
         plt.xlabel('sigma')
-        plt.ylabel('negative log-likelihood')
-        plt.legend()
+        plt.ylabel('likelihood')
         plt.grid()
         plt.show()
     
@@ -82,32 +82,26 @@ class SPCE():
             grad_like =  self.poly(samples_x[:, np.newaxis], self.z_j) * nominator / (np.sqrt(2 * np.pi) * sigma_noise ** 3) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j
             grad_like_sum = np.sum(grad_like, axis=2)
             like = np.sum(likelihood_quadrature, axis=1)
-            grad_test = np.sum((1 / (like)) * grad_like_sum, axis=1)
-
-            # grad_norm = grad_test / grad_initial
+            grad_test = np.sum((1 / (like)) * (- grad_like_sum), axis=1)
 
             return grad_test
         
-
         normalized_likelihood = []
-        grad_initial = 1
-        # grad_initial = gradient_function(c_initial, samples_x, y_values, sigma_noise,  1, normalized_likelihood)
         initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_noise,  1, normalized_likelihood)
         
         start = time.time()
-        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood), method='BFGS') #, jac=gradient_function) #, options={'maxiter': 1}
-        print('hallo')
-        # result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function)
+        # result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood), method='BFGS') #, jac=gradient_function)
+        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function)
         print('time = ', time.time() - start)
         optimized_c = result.x
         print(result.message)
 
-        plt.figure()
-        plt.plot(normalized_likelihood[1:])
-        plt.xlabel('iteration')
-        plt.ylabel('normalized likelihood')
-        plt.yscale('log')
-        plt.show()
+        # plt.figure()
+        # plt.plot(normalized_likelihood[1:])
+        # plt.xlabel('iteration')
+        # plt.ylabel('likelihood')
+        # plt.yscale('log')
+        # plt.show()
         
         return optimized_c
 
@@ -119,12 +113,12 @@ class SPCE():
 
         return dist_spce
 
-    def plot_distribution(self, dist_spce, y, pdf, samples_x, samples_y_test, mean_test, sigma_test): #, samples_y_test
+    def plot_distribution(self, dist_spce, y, pdf, samples_x, samples_y, mean_test, sigma_test): #, samples_y_test
 
         samples_x_i = samples_x[:5]
         indices = [np.abs(samples_x - value).argmin() for value in samples_x_i]
 
-        gpr_test = Gaussian_Process(samples_x, samples_y_test, mean_test, sigma_test)
+        gpr_test = Gaussian_Process(samples_x, samples_y, mean_test, sigma_test)
         mean_prediction_gpr, std_prediction_gpr = gpr_test.run()
         gpr_test.plot_gpr()
             
@@ -136,10 +130,17 @@ class SPCE():
 
             ''' KDE for GPR '''
             dist_gpr = cp.Normal(mean_prediction_gpr[x], std_prediction_gpr[x])
-            samples_gpr = dist_gpr.sample(size=1000)
+            samples_gpr = dist_gpr.sample(size=10000)
             kde = gaussian_kde(samples_gpr)
             x_values_gpr = np.linspace(min(samples_gpr), max(samples_gpr), 1000) 
-            dist_gpr_pdf_values = kde(x_values_spce)
+            dist_gpr_pdf_values = kde(x_values_gpr)
+
+            # area_reference = trapz(pdf[indices[x],:], y)
+            # area_spce = trapz(dist_spce_pdf_values, x_values_spce)
+            # area_gpr = trapz(dist_gpr_pdf_values, x_values_gpr)
+            # print('area reference = ', area_reference)
+            # print('area spce = ', area_spce)
+            # print('area gpr = ', area_gpr)
 
             bin_edges = np.arange(-4, 8, 0.2)
 
@@ -172,7 +173,7 @@ class SPCE():
         coef_q0_index = 0
         for i, term in enumerate(self.poly):
             term_str = str(term)
-            if "q1" in term_str:
+            if "q1" in term_str or "q2" in term_str:
                 c[i] = np.random.normal(-10, 10)  
             else:
                 c[i] = coef_q0[coef_q0_index]
@@ -192,7 +193,7 @@ class SPCE():
 
         return error
 
-    def cross_validation(self, sigma_noise, dist_Z, N_q, c_initial):
+    def cross_validation(self, sigma_noise, c_initial):
 
         if self.n_samples < 200:
             n_cv = 10
@@ -207,24 +208,24 @@ class SPCE():
         for train_index, val_index in kf.split(self.samples_x):
             train_x = self.samples_x[train_index]
             train_y = self.y_values[train_index]
-            c_opt = self.compute_optimal_c(train_x, train_y, dist_Z, sigma_noise, N_q, c_initial)
+            c_opt = self.compute_optimal_c(train_x, train_y, sigma_noise, c_initial)
             print('sigma = ', sigma_noise)
             val_x = self.samples_x[val_index]
             val_y = self.y_values[val_index]
             normalized_likelihood=[]
             likelihood = self.likelihood_function(c_opt, val_x, val_y, sigma_noise, 1, normalized_likelihood)
             cv_scores.append(likelihood)
-            # print('cv_score = ', cv_scores[-1])
+            print('cv_score = ', cv_scores[-1])
 
         total_cv_score = np.sum(cv_scores)
         print('total_cv_score = ', total_cv_score)
         return total_cv_score
     
 
-    def compute_optimal_sigma(self, dist_Z, N_q, c_initial):
+    def compute_optimal_sigma(self, c_initial):
 
         def cv_score(sigma):
-            return -self.cross_validation(sigma, dist_Z, N_q, c_initial)
+            return -self.cross_validation(sigma, c_initial)
  
         sigma_bounds = (0.15, 1)
         optimizer = differential_evolution(cv_score, bounds=[sigma_bounds], strategy='best1bin', disp=True, maxiter=1)

@@ -7,7 +7,7 @@ from spce import SPCE
 from gaussian_process import Gaussian_Process
 import time
 
-n_samples = 400
+n_samples = 1600
 dist_X = cp.Uniform(0, 1)
 samples_x = dist_X.sample(size=n_samples, rule='H') 
 samples_x_i = np.array([0.2, 0.5, 0.75, 0.9])
@@ -32,7 +32,7 @@ samples_y = example.create_data_points(mean, sigma, 1, samples_x).reshape(-1)
 ########################################################################################################################
 
 ### SPCE
-p = 4
+p = 3
 sigma_noise = 0.7
 # dist_Z = cp.Normal(0, 1)
 dist_Z = cp.Uniform(-1, 1)
@@ -62,7 +62,7 @@ optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, c_initia
 dist_eps = cp.Normal(0, sigma_noise)
 n_x = 1000
 n_samples_test = 10000
-samples_x_test = dist_X.sample(n_x)
+samples_x_test = dist_X.sample(n_x, rule='H')
 # samples_x_test = np.array([0.1, 0.5, 0.75, 0.9])
 samples_z_test = dist_Z.sample(n_samples_test)
 samples_eps_test = dist_eps.sample(n_samples_test)
