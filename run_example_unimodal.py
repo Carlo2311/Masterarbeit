@@ -32,7 +32,7 @@ samples_y = example.create_data_points(mean, sigma, 1, samples_x).reshape(-1)
 ########################################################################################################################
 
 ### SPCE
-p = 3
+p = 5
 sigma_noise = 0.7
 # dist_Z = cp.Normal(0, 1)
 dist_Z = cp.Uniform(-1, 1)
@@ -49,7 +49,12 @@ sigma_range = (0.5, 10)
 # spce.plot_likelihood_vs_sigma(samples_x, samples_y, dist_Z, N_q, sigma_range, c_initial)
 
 optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, c_initial)
-# sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)[0]
+sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)
+optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
+sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)
+optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
+sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)
+optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
 # sigma_noise = spce.compute_optimal_sigma(c_initial)
 # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_2/sigma_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy', sigma_noise)
 # optimized_c_new = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
