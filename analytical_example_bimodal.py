@@ -35,32 +35,28 @@ class AnalyticalExample():
         return pdf, mean_1, mean_2, sigma_1, sigma_2, mean_12, sigma_12
     
     def create_data_points(self, mean_1, mean_2, sigma_1, sigma_2, samples_plot, samples_x):
-
-        dist_samples_uni = cp.Uniform(0, 1)
         
-        samples_y = np.zeros((samples_x.shape[0], samples_plot))
+        samples_uni = np.random.uniform(0, 1, (samples_x.shape[0], samples_plot))
+    
+        mask = samples_uni <= 0.4
+        samples_1 = np.random.normal(mean_1[:, np.newaxis], sigma_1[:, np.newaxis], (samples_x.shape[0], samples_plot))
+        samples_2 = np.random.normal(mean_2[:, np.newaxis], sigma_2[:, np.newaxis], (samples_x.shape[0], samples_plot))
+        
+        samples_y = np.where(mask, samples_1, samples_2)
 
-        for i in range(samples_x.shape[0]):
-            samples_uni = dist_samples_uni.sample(size=samples_plot) 
-            mask = samples_uni <= 0.4
-            dist_1 = cp.Normal(mean_1[i], sigma_1[i])
-            dist_2 = cp.Normal(mean_2[i], sigma_2[i])
-            samples_1 = dist_1.sample(samples_plot)
-            samples_2 = dist_2.sample(samples_plot)
-            samples_y[i, mask] = samples_1[mask]
-            samples_y[i, ~mask] = samples_2[~mask]
+        # dist_samples_uni = cp.Uniform(0, 1)
+        
+        # samples_y = np.zeros((samples_x.shape[0], samples_plot))
 
-        # dist_samples = cp.Uniform(0, 1)
-        # samples = dist_samples.sample(size=samples_x.shape[0]) 
-        # samples_y = np.zeros(samples_x.shape[0])
-
-        # for i, sample in enumerate(samples):
-        #     if sample <= 0.4:
-        #         dist = cp.Normal(mean_1[i], sigma_1[i])
-        #         samples_y[i] = dist.sample(samples_plot)
-        #     else:
-        #         dist = cp.Normal(mean_2[i], sigma_2[i])
-        #         samples_y[i] = dist.sample(samples_plot)
+        # for i in range(samples_x.shape[0]):
+        #     samples_uni = dist_samples_uni.sample(size=samples_plot) 
+        #     mask = samples_uni <= 0.4
+        #     dist_1 = cp.Normal(mean_1[i], sigma_1[i])
+        #     dist_2 = cp.Normal(mean_2[i], sigma_2[i])
+        #     samples_1 = dist_1.sample(samples_plot)
+        #     samples_2 = dist_2.sample(samples_plot)
+        #     samples_y[i, mask] = samples_1[mask]
+        #     samples_y[i, ~mask] = samples_2[~mask]
 
         return samples_y
 

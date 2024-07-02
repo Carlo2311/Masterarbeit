@@ -16,33 +16,25 @@ from gaussian_process import Gaussian_Process
 
 class SPCE():
 
-    def __init__(self, n_samples, p, y_values, sigma, x, dist_joint, N_q, dist_Z1, dist_Z2):
+    def __init__(self, n_samples, p, y_values, sigma, x, dist_joint, N_q, dist_Z):
         self.n_samples = n_samples
         self.p = p
         self.y_values = y_values
         self.sigma = sigma
         self.samples_x = x
         self.dist_joint = dist_joint
-        self.poly = cp.generate_expansion(self.p, self.dist_joint, cross_truncation=0.5)
-        self.quadrature_points_Z1, self.quadrature_weights_Z1 = cp.generate_quadrature(N_q, dist_Z1, 'gaussian')
-        self.quadrature_points_Z2, self.quadrature_weights_Z2 = cp.generate_quadrature(N_q, dist_Z2, 'gaussian')
-        self.z1_j = self.quadrature_points_Z1[0] 
-        self.w1_j = self.quadrature_weights_Z1 
-        self.z2_j = self.quadrature_points_Z2[0]  
-        self.w2_j = self.quadrature_weights_Z2
+        self.poly = cp.generate_expansion(self.p, self.dist_joint, cross_truncation=0.75)
+        self.quadrature_points, self.quadrature_weights = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
+        self.z_j = self.quadrature_points
+        self.w_j = self.quadrature_weights
 
     def likelihood_function(self, c, samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood):
         
-        z1_grid, z2_grid = np.meshgrid(self.z1_j, self.z2_j, indexing='ij')
-        w1_grid, w2_grid = np.meshgrid(self.w1_j, self.w2_j, indexing='ij')
-    
-        joint_weights = w1_grid * w2_grid
-        pce_values = np.sum(c[:, np.newaxis, np.newaxis, np.newaxis] * 
-                            self.poly(samples_x[:, np.newaxis, np.newaxis], z1_grid.ravel(), z2_grid.ravel()), axis=0)
-        pce_values = pce_values.reshape((samples_x.shape[0], z1_grid.shape[0], z2_grid.shape[1]))
-        exp_terms = -((y_values[:, np.newaxis, np.newaxis] - pce_values) ** 2) / (2 * sigma_noise ** 2)
-        likelihood_quadrature = (1 / (np.sqrt(2 * np.pi) * sigma_noise)) * np.exp(exp_terms) * joint_weights
-        likelihood = np.sum(likelihood_quadrature, axis=(1, 2))
+        poly_matrix = self.poly(samples_x[:, np.newaxis], self.z_j[0,:], self.z_j[1,:])
+        pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
+
+        likelihood_quadrature = (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j)
+        likelihood = np.sum(likelihood_quadrature, axis=1)
         likelihood_sum = - np.sum(np.log(likelihood))
 
         normalized_likelihood_i = likelihood_sum / initial_likelihood
@@ -79,27 +71,19 @@ class SPCE():
     def compute_optimal_c(self, samples_x, y_values, sigma_noise, c_initial):
 
         def gradient_function(c, samples_x, y_values, sigma_noise, initial_likelihood, normalized_likelihood):
-            z1_grid, z2_grid = np.meshgrid(self.z1_j, self.z2_j, indexing='ij')
-            w1_grid, w2_grid = np.meshgrid(self.w1_j, self.w2_j, indexing='ij')
-            joint_weights = w1_grid * w2_grid
-            
-            poly_matrix = self.poly(samples_x[:, np.newaxis, np.newaxis], z1_grid.ravel(), z2_grid.ravel())
-            pce = np.sum(c[:, np.newaxis, np.newaxis, np.newaxis] * poly_matrix, axis=0)
-            pce = pce.reshape((samples_x.shape[0], z1_grid.shape[0], z2_grid.shape[1]))
-            nominator = y_values[:, np.newaxis, np.newaxis] - pce
-            exp_terms = np.exp(-((y_values[:, np.newaxis, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2))
-            likelihood_quadrature = (1 / (np.sqrt(2 * np.pi) * sigma_noise)) * exp_terms * joint_weights
-            grad_poly_matrix = self.poly(samples_x[:, np.newaxis, np.newaxis], z1_grid.ravel(), z2_grid.ravel())
-            grad_poly_matrix = grad_poly_matrix.reshape((c.shape[0], samples_x.shape[0], z1_grid.shape[0], z2_grid.shape[1]))
 
-            grad_like = grad_poly_matrix * (nominator / (np.sqrt(2 * np.pi) * sigma_noise ** 3) * exp_terms) * joint_weights
+            poly_matrix = self.poly(samples_x[:, np.newaxis], self.z_j[0], self.z_j[1])
+            pce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
 
-            grad_like_sum = np.sum(grad_like, axis=(2, 3))
-            like = np.sum(likelihood_quadrature, axis=(1, 2))
-            grad_test = np.sum((1 / like) * (- grad_like_sum), axis=1)
-            
+            nominator = y_values[:, np.newaxis] - pce
+            likelihood_quadrature =  (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j)
+
+            grad_like =  self.poly(samples_x[:, np.newaxis], self.z_j[0], self.z_j[1]) * nominator / (np.sqrt(2 * np.pi) * sigma_noise ** 3) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j
+            grad_like_sum = np.sum(grad_like, axis=2)
+            like = np.sum(likelihood_quadrature, axis=1)
+            grad_test = np.sum((1 / (like)) * (- grad_like_sum), axis=1)
+
             return grad_test
-
         
         normalized_likelihood = []
         initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_noise,  1, normalized_likelihood)
@@ -121,9 +105,9 @@ class SPCE():
         return optimized_c
 
 
-    def generate_dist_spce(self, samples_x, samples_z1, samples_z2, samples_eps, c):
+    def generate_dist_spce(self, samples_x, samples_z, samples_eps, c):
         
-        poly_matrix = self.poly(samples_x[:, np.newaxis], samples_z1, samples_z2) 
+        poly_matrix = self.poly(samples_x[:, np.newaxis], samples_z[0,:], samples_z[1,:]) 
         dist_spce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0) + samples_eps
 
         return dist_spce

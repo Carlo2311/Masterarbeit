@@ -26,19 +26,17 @@ sigma_noise = 0.6
 # dist_Z = cp.Normal(0, 1)
 # dist_Z = cp.Uniform(-1, 1)
 dist_Z1 = cp.Uniform(-1, 1)
-dist_Z2 = cp.Normal(0, 1)
+dist_Z2 = cp.Uniform(0, 1)
 dist_Z = cp.J(dist_Z1, dist_Z2)
-
 dist_joint = cp.J(dist_X, dist_Z1, dist_Z2)
 N_q = 15
-quadrature_points_Z1, quadrature_weights_Z1 = cp.generate_quadrature(N_q, dist_Z, 'gaussian')
 print('sigma = ', sigma_noise)
 
 
 
 ############## SPCE #################################################################
 
-spce = SPCE(n_samples, p, samples_y.T, sigma_noise, samples_x, dist_joint, N_q, dist_Z1, dist_Z2)
+spce = SPCE(n_samples, p, samples_y.T, sigma_noise, samples_x, dist_joint, N_q, dist_Z)
 
 c_initial = spce.start_c()
 sigma_range = (0.3, 20)
@@ -62,7 +60,8 @@ optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, c_initia
 # sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)
 # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c_new)
 # optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
-# np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_1/c_D2_q1_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_2.npy', optimized_c)
+np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_1/c_2Z_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_075.npy', optimized_c)
+# optimized_c = np.load(fr'solutions_example_1/c_2Z_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_2.npy') 
 print('last sigma = ', sigma_noise)
 
 ############# test surrogate ##########################################################
@@ -71,10 +70,9 @@ n_x = 1000
 n_samples_test = 10000
 samples_x_test = dist_X.sample(n_x, rule='H')
 # samples_x_test = np.array([0.1, 0.5, 0.75, 0.9])
-samples_z1_test = dist_Z1.sample(n_samples_test)
-samples_z2_test = dist_Z2.sample(n_samples_test)
+samples_z1_test = dist_Z.sample(n_samples_test)
 samples_eps_test = dist_eps.sample(n_samples_test)
-dist_spce = spce.generate_dist_spce(samples_x_test, samples_z1_test, samples_z2_test, samples_eps_test, optimized_c)
+dist_spce = spce.generate_dist_spce(samples_x_test, samples_z1_test, samples_eps_test, optimized_c)
 
 # calculate Y of analytical model 
 pdf_test, mean_1_test, mean_2_test, sigma_1_test, sigma_2_test, mean_12_test, sigma_12_test = example.calculate_pdf(samples_x_test)

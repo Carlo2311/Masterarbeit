@@ -20,7 +20,7 @@ class Gaussian_Process():
         self.y = self.mean
 
         rng = np.random.RandomState(1)
-        training_indices = rng.choice(np.arange(self.y.size), size=100, replace=False)
+        training_indices = rng.choice(np.arange(self.y.size), size=10, replace=False)
         self.X_train, self.y_train = self.X[training_indices], self.y[training_indices]
 
         self.noise_std = np.mean(self.sigma)
@@ -64,5 +64,5 @@ class Gaussian_Process():
         plt.xlabel("$x$")
         plt.ylabel("$f(x)$")
         _ = plt.title("GPR")
-        # plt.show()
+        plt.show()
 
