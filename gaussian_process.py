@@ -14,18 +14,24 @@ class Gaussian_Process():
         self.sigma = sigma
         pass
 
-    def run(self):
+    def run(self, x_train, y_train):
 
         self.X = self.samples_x.reshape(-1, 1)
         self.y = self.mean
 
-        rng = np.random.RandomState(1)
-        training_indices = rng.choice(np.arange(self.y.size), size=10, replace=False)
-        self.X_train, self.y_train = self.X[training_indices], self.y[training_indices]
+        # rng = np.random.RandomState(1)
+        # training_indices = rng.choice(np.arange(self.y.size), size=10, replace=False)
+        # self.X_train, self.y_train = self.X[training_indices], self.y[training_indices]
 
+        # self.noise_std = np.mean(self.sigma)
+        # self.y_train_noisy = self.y_train + rng.normal(loc=0.0, scale=self.noise_std, size=self.y_train.shape)
+
+        ###
+        self.X_train = x_train.reshape(-1, 1)
+        self.y_train_noisy = y_train
         self.noise_std = np.mean(self.sigma)
+        ###
 
-        self.y_train_noisy = self.y_train + rng.normal(loc=0.0, scale=self.noise_std, size=self.y_train.shape)
         kernel = RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2)) + WhiteKernel(noise_level=self.noise_std, noise_level_bounds=(1e-5, 1e1))
         gaussian_process = GaussianProcessRegressor(
             kernel=kernel, n_restarts_optimizer=9

@@ -113,11 +113,11 @@ class SPCE():
 
         return dist_spce
     
-    def generate_dist_gpr(self, samples_x, samples_y, mean_test, sigma_test):
-        gpr_test = Gaussian_Process(samples_x, samples_y, mean_test, sigma_test)
-        mean_prediction_gpr, std_prediction_gpr = gpr_test.run()
-        gpr_test.plot_gpr()
-        samples_gpr_all = np.random.normal(mean_prediction_gpr[:, np.newaxis], std_prediction_gpr[:, np.newaxis], (samples_x.shape[0], 10000))
+    def generate_dist_gpr(self, samples_x_test, samples_y_test, mean_test, sigma_test):
+        gpr_test = Gaussian_Process(samples_x_test, samples_y_test, mean_test, sigma_test)
+        mean_prediction_gpr, std_prediction_gpr = gpr_test.run(self.samples_x, self.y_values)
+        # gpr_test.plot_gpr()
+        samples_gpr_all = np.random.normal(mean_prediction_gpr[:, np.newaxis], std_prediction_gpr[:, np.newaxis], (samples_x_test.shape[0], 10000))
 
         return mean_prediction_gpr, std_prediction_gpr, samples_gpr_all
 
