@@ -39,15 +39,18 @@ twh_tz_max = df_sorted['TwHtALzt_[m/s^]_max'].to_numpy()
 
 plt.figure()
 plt.hist(windspeed[:300], bins=30)
-tikzplotlib.save(rf"tex_files\windspeed.tex")
+tikzplotlib.save(rf"tex_files\wind_data\windspeed.tex")
 
 plt.figure()
 plt.scatter(windspeed[:300], turbulence_intensity[:300])
+tikzplotlib.save(rf"tex_files\wind_data\turbulence.tex")
 
 plt.figure()
 plt.scatter(windspeed[:300], rho[:300])  
+tikzplotlib.save(rf"tex_files\wind_data\rho.tex")
 
 plt.figure()
 plt.scatter(windspeed[:300], yaw_angle[:300])
+tikzplotlib.save(rf"tex_files\wind_data\yaw_angle.tex")
 
 plt.show()
