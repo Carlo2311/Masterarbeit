@@ -44,32 +44,18 @@ class AnalyticalExample():
         
         samples_y = np.where(mask, samples_1, samples_2)
 
-        # dist_samples_uni = cp.Uniform(0, 1)
-        
-        # samples_y = np.zeros((samples_x.shape[0], samples_plot))
-
-        # for i in range(samples_x.shape[0]):
-        #     samples_uni = dist_samples_uni.sample(size=samples_plot) 
-        #     mask = samples_uni <= 0.4
-        #     dist_1 = cp.Normal(mean_1[i], sigma_1[i])
-        #     dist_2 = cp.Normal(mean_2[i], sigma_2[i])
-        #     samples_1 = dist_1.sample(samples_plot)
-        #     samples_2 = dist_2.sample(samples_plot)
-        #     samples_y[i, mask] = samples_1[mask]
-        #     samples_y[i, ~mask] = samples_2[~mask]
-
         return samples_y
 
 
-    def create_data_points1(self, pdf):
-        pdf_normalized = pdf / np.sum(pdf, axis=1, keepdims=True) # normalize PDF
-        cdf = np.cumsum(pdf_normalized, axis=1) # CDF
-        random_numbers = np.random.rand(self.n_samples) # uniform numbers between 0 and 1
-        samples_y = np.zeros(self.n_samples)
-        for i in range(self.n_samples):
-            samples_y[i] = np.interp(random_numbers[i], cdf[i], self.y) # inverse of the CDF to map uniform random numbers to values
+    # def create_data_points1(self, pdf):
+    #     pdf_normalized = pdf / np.sum(pdf, axis=1, keepdims=True) # normalize PDF
+    #     cdf = np.cumsum(pdf_normalized, axis=1) # CDF
+    #     random_numbers = np.random.rand(self.n_samples) # uniform numbers between 0 and 1
+    #     samples_y = np.zeros(self.n_samples)
+    #     for i in range(self.n_samples):
+    #         samples_y[i] = np.interp(random_numbers[i], cdf[i], self.y) # inverse of the CDF to map uniform random numbers to values
 
-        return samples_y
+    #     return samples_y
     
     def plot_example(self, samples_x, samples_y, mean_1, mean_2, pdf, indices):
 

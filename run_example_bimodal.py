@@ -7,10 +7,10 @@ from spce import SPCE
 import time
 
 
-n_samples_all = [50,100,200,300,500,1000,1500,2000]
+n_samples_all = [1600]
 
-error_n = np.zeros((5, len(n_samples_all)))
-error_gpr = np.zeros((5, len(n_samples_all)))
+error_n = np.zeros((1, len(n_samples_all)))
+error_gpr = np.zeros((1, len(n_samples_all)))
 
 for i in range(error_n.shape[0]):
     for n_i, n_samples in enumerate(n_samples_all):
@@ -47,11 +47,19 @@ for i in range(error_n.shape[0]):
 
             spce = SPCE(n_samples, p, samples_y.T, sigma_noise, samples_x, dist_joint, N_q, dist_Z, q)
 
-            c_initial = spce.start_c()
-            sigma_range = (0.3, 2)
+            poly, z_j = spce.get_params()
+            poly_matrix = poly(samples_x[:, np.newaxis], z_j)
+
+            surrogate_q0, poly_initial = spce.start_c()
+
+            c_initial = poly_initial.coefficients
+
+            error_loo = spce.loo_error(mean_12, surrogate_q0)
+            
+            sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
             # spce.plot_sigma(samples_x, samples_y, sigma_range, c_initial)
 
-            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, c_initial)
+            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, c_initial, poly_matrix, poly_initial)
             if message == 'Optimization terminated successfully.':
                 repeat = False  
 
@@ -60,7 +68,7 @@ for i in range(error_n.shape[0]):
         # sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)
         # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c)
 
-        # sigma_noise = spce.compute_optimal_sigma(optimized_c) # cross validation
+        # sigma_noise = spce.compute_optimal_sigma(optimized_c, poly_matrix, sigma_range) # cross validation
         # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_1/sigma_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_CV.npy', sigma_noise)
 
         # optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
@@ -90,14 +98,14 @@ for i in range(error_n.shape[0]):
         # samples_x_test = np.array([0.2, 0.5, 0.7, 0.9])
         samples_z_test = dist_Z.sample(n_samples_test)
         samples_eps_test = dist_eps.sample(n_samples_test)
-        dist_spce = spce.generate_dist_spce(samples_x_test, samples_z_test, samples_eps_test, optimized_c)
+        dist_spce = spce.generate_dist_spce(samples_x_test, samples_z_test, samples_eps_test, optimized_c, poly_initial)
 
         # calculate Y of analytical model 
         pdf_test, mean_1_test, mean_2_test, sigma_1_test, sigma_2_test, mean_12_test, sigma_12_test = example.calculate_pdf(samples_x_test)
         samples_y_test = example.create_data_points(mean_1_test, mean_2_test, sigma_1_test, sigma_2_test, n_samples_test, samples_x_test)
 
         mean_prediction_gpr, std_prediction_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, mean_12_test, sigma_12_test)
-        # spce.plot_distribution(dist_spce, y, pdf_test, samples_x_test, samples_y_test, mean_prediction_gpr, std_prediction_gpr)
+        spce.plot_distribution(dist_spce, y, pdf_test, samples_x_test, samples_y_test, mean_prediction_gpr, std_prediction_gpr)
 
         error_n[i, n_i], error_gpr[i, n_i] = spce.compute_error(dist_spce, samples_y_test, dist_gpr)
         print('error spce = ', error_n[i, n_i])
@@ -110,13 +118,13 @@ error_gpr_mean = np.mean(error_gpr, axis=0)
 print('error mean spce =', error_spce)   
 print('error mean gpr =', error_gpr_mean)   
 
-plt.figure()
-plt.plot(n_samples_all, error_spce, label='SPCE')
-plt.plot(n_samples_all, error_gpr_mean, label='GPR')
-plt.xlabel(f'N')
-plt.ylabel('error')
-plt.grid()
-plt.yscale('log')
-tikzplotlib.save(rf"tex_files\bimodal\bimodal_error_gpr_2.tex")
+# plt.figure()
+# plt.plot(n_samples_all, error_spce, label='SPCE')
+# plt.plot(n_samples_all, error_gpr_mean, label='GPR')
+# plt.xlabel(f'N')
+# plt.ylabel('error')
+# plt.grid()
+# plt.yscale('log')
+# tikzplotlib.save(rf"tex_files\bimodal\bimodal_error_gpr_2.tex")
 
 plt.show()
