@@ -40,26 +40,32 @@ for i in range(error_n.shape[0]):
             N_q = 10
             q = 0.8
 
-            print('sigma = ', sigma_noise)
-
-
             ############## SPCE #################################################################
 
-            spce = SPCE(n_samples, p, samples_y.T, sigma_noise, samples_x, dist_joint, N_q, dist_Z, q)
+            spce = SPCE(n_samples, p, samples_y.T, samples_x, dist_joint, N_q, dist_Z, q)
 
             poly, z_j = spce.get_params()
-            poly_matrix = poly(samples_x[:, np.newaxis], z_j)
+            # poly_matrix = poly(samples_x[:, np.newaxis], z_j)
+            input_x_start = [samples_x]
+            input_x = [samples_x[:, np.newaxis]]
 
-            surrogate_q0, poly_initial = spce.start_c()
+            surrogate_q0, poly_initial = spce.start_c(input_x_start)
 
-            c_initial = poly_initial.coefficients
+            optimized_c = poly_initial.coefficients
+            polynomials = cp.prod(poly_initial.indeterminants**poly_initial.exponents, axis=-1)
 
-            error_loo = spce.loo_error(mean_12, surrogate_q0)
+            error_loo = spce.loo_error(mean_12, surrogate_q0, input_x_start)
             
             sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
-            # spce.plot_sigma(samples_x, samples_y, sigma_range, c_initial)
+            # # spce.plot_sigma(samples_x, samples_y, sigma_range, c_initial)
+            sigma_noise_range = np.linspace(np.log(np.sqrt(error_loo)), np.log(1), 2)
+            sigma_noise_sorted = sorted(np.exp(sigma_noise_range), reverse=True)
 
-            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, c_initial, poly_matrix, poly_initial)
+            for sigma_noise_i in sigma_noise_sorted:
+                print('sigma = ', sigma_noise_i)
+                optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise_i, optimized_c, polynomials, input_x)
+                print(optimized_c)
+                print(message)
             if message == 'Optimization terminated successfully.':
                 repeat = False  
 
@@ -89,7 +95,7 @@ for i in range(error_n.shape[0]):
         # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_1/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_CV.npy', optimized_c)
         # print('last sigma = ', sigma_noise)
 
-
+        sigma_noise = 0.6406371832484791
         ############# test surrogate ##########################################################
         dist_eps = cp.Normal(0, sigma_noise)
         n_x = 1000
@@ -98,7 +104,8 @@ for i in range(error_n.shape[0]):
         # samples_x_test = np.array([0.2, 0.5, 0.7, 0.9])
         samples_z_test = dist_Z.sample(n_samples_test)
         samples_eps_test = dist_eps.sample(n_samples_test)
-        dist_spce = spce.generate_dist_spce(samples_x_test, samples_z_test, samples_eps_test, optimized_c, poly_initial)
+        input_x_test = [samples_x_test[:, np.newaxis]]
+        dist_spce = spce.generate_dist_spce(samples_x_test, samples_z_test, samples_eps_test, optimized_c, polynomials, input_x_test)
 
         # calculate Y of analytical model 
         pdf_test, mean_1_test, mean_2_test, sigma_1_test, sigma_2_test, mean_12_test, sigma_12_test = example.calculate_pdf(samples_x_test)

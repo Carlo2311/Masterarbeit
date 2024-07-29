@@ -14,14 +14,14 @@ from scipy.integrate import trapz
 from bayes_opt import BayesianOptimization
 from gaussian_process import Gaussian_Process
 import tikzplotlib
+from mpl_toolkits.mplot3d import Axes3D
 
 class SPCE():
 
-    def __init__(self, n_samples, p, y_values, sigma, x, dist_joint, N_q, dist_Z, q):
+    def __init__(self, n_samples, p, y_values, x, dist_joint, N_q, dist_Z, q):
         self.n_samples = n_samples
         self.p = p
         self.y_values = y_values
-        self.sigma = sigma
         self.samples_x = x
         self.dist_joint = dist_joint
         self.poly = cp.generate_expansion(self.p, self.dist_joint, cross_truncation=q)
@@ -32,21 +32,34 @@ class SPCE():
     def get_params(self):
         return self.poly, self.z_j
 
-    def likelihood_function(self, c, samples_x, y_values, sigma_noise, poly_matrix, poly_initial, initial_likelihood, normalized_likelihood):
+    def likelihood_function(self, c, samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood):
         
         # poly_matrix = self.poly(samples_x[:, np.newaxis], self.z_j)
         # pce2 = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
-        
-        # pce = poly_initial(samples_x[:, np.newaxis], self.z_j)
 
-        terms = c * cp.prod(poly_initial.indeterminants**poly_initial.exponents, axis=-1)
+        terms = c * poly
         poly_opt = cp.sum(terms, axis=0)
-        pce = poly_opt(samples_x[:, np.newaxis], self.z_j)
+        # input_x = [samples_x[0,:, np.newaxis], samples_x[1,:, np.newaxis], samples_x[2,:, np.newaxis], samples_x[3,:, np.newaxis]]
+        pce = poly_opt(*input_x, self.z_j)
         
+
         # plt.figure()
-        # plt.scatter(samples_x, y_values, label='reference')
-        # plt.scatter(samples_x, pce[:,4], label='poly')
+        # plt.scatter(samples_x[0,:], y_values, label='reference')
+        # plt.scatter(samples_x[0,:], pce[:,4], label='poly')
         # plt.legend()
+        # plt.show()
+        
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection='3d')
+        # sc = ax.scatter(samples_x[0,:], samples_x[1,:], y_values, c=y_values, cmap='viridis', marker='o', label='reference')
+        # sc2 = ax.scatter(samples_x[0,:], samples_x[1,:], pce[:,4], c=pce[:,4], cmap='plasma', marker='^', label='SPCE')
+        # ax.set_xlabel('Wind Speed (m/s)')
+        # ax.set_ylabel('Turbulence Intensity')
+        # ax.set_zlabel('Blade Load')
+        # cb_actual = plt.colorbar(sc, ax=ax, pad=0.1)
+        # cb_actual.set_label('Actual Blade Load')
+        # cb_predicted = plt.colorbar(sc2, ax=ax, pad=0.2)
+        # cb_predicted.set_label('Predicted Blade Load')
         # plt.show()
 
         likelihood_quadrature = (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j)
@@ -54,25 +67,28 @@ class SPCE():
         likelihood_sum = - np.sum(np.log(likelihood))
 
         # normalized_likelihood_i = likelihood_sum / initial_likelihood
-        # normalized_likelihood.append(likelihood_sum)
+        normalized_likelihood.append(likelihood_sum)
 
         return likelihood_sum
     
 
-    def compute_optimal_c(self, samples_x, y_values, sigma_noise, c_initial, poly_matrix, poly_initial):
+    def compute_optimal_c(self, samples_x, y_values, sigma_noise, c_initial, poly, input_x):
 
-        def gradient_function(c, samples_x, y_values, sigma_noise, poly_matrix, poly_initial, initial_likelihood, normalized_likelihood):
+        def gradient_function(c, samples_x, y_values, sigma_noise, poly_initial, input_x, initial_likelihood, normalized_likelihood):
 
             # poly_matrix = self.poly(samples_x[:, np.newaxis], self.z_j)
             # pce_test = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0)
             # pce = poly_initial(samples_x[:, np.newaxis], self.z_j)
 
-            terms = c * cp.prod(poly_initial.indeterminants**poly_initial.exponents, axis=-1)
+            # terms = c * cp.prod(poly_initial.indeterminants**poly_initial.exponents, axis=-1)
+            terms = c * poly
             poly_opt = cp.sum(terms, axis=0)
-            pce = poly_opt(samples_x[:, np.newaxis], self.z_j)
+            pce = poly_opt(*input_x, self.z_j)
+            # pce = poly_opt(samples_x[0,:, np.newaxis], samples_x[1,:, np.newaxis], samples_x[2,:, np.newaxis], samples_x[3,:, np.newaxis], self.z_j)
 
-            polynomials_eq = cp.prod(poly_initial.indeterminants**poly_initial.exponents, axis=-1)
-            polynomials = polynomials_eq(samples_x[:, np.newaxis], self.z_j)
+            polynomials_eq = poly
+            polynomials = polynomials_eq(*input_x, self.z_j)
+            # polynomials = polynomials_eq(samples_x[0,:, np.newaxis], samples_x[1,:, np.newaxis], samples_x[2,:, np.newaxis], samples_x[3,:, np.newaxis], self.z_j)
 
             nominator = y_values[:, np.newaxis] - pce
             likelihood_quadrature =  (1 / (np.sqrt(2 * np.pi) * sigma_noise) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j)
@@ -85,12 +101,12 @@ class SPCE():
             return grad
         
         normalized_likelihood = []
-        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_noise, poly_matrix, poly_initial, 1, normalized_likelihood)
+        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_noise, poly, input_x, 1, normalized_likelihood)
         
         start = time.time()
-        # result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly_matrix, poly_initial, initial_likelihood, normalized_likelihood), method='BFGS') #, jac=gradient_function)
-        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly_matrix, poly_initial, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function)
-        print('time = ', time.time() - start)
+        # result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood), method='BFGS') #, jac=gradient_function)
+        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function)
+        # print('time = ', time.time() - start)
         optimized_c = result.x
         # print(result.message)
 
@@ -129,15 +145,18 @@ class SPCE():
         plt.show()
 
 
-    def generate_dist_spce(self, samples_x, samples_z, samples_eps, c, poly_initial):
+    def generate_dist_spce(self, samples_x, samples_z, samples_eps, c, poly, input_x):
         
-        terms = c * cp.prod(poly_initial.indeterminants**poly_initial.exponents, axis=-1)
+        terms = c * poly
         poly_opt = cp.sum(terms, axis=0)
-        pce = poly_opt(samples_x[:, np.newaxis], samples_z)
+        pce = poly_opt(*input_x, samples_z)
         dist_spce = pce + samples_eps
-        
-        # poly_matrix = self.poly(samples_x[:, np.newaxis], samples_z) 
-        # dist_spce = np.sum(c[:, np.newaxis, np.newaxis] * poly_matrix, axis=0) + samples_eps
+
+        # plt.figure()
+        # plt.hist(pce[0,:], bins=60, alpha=0.5, label='SPCE ohne ')
+        # plt.hist(dist_spce[0,:], bins=60, alpha=0.5, label='SPCE mit ')
+        # plt.legend()
+        # plt.show()
 
         return dist_spce
     
@@ -186,7 +205,7 @@ class SPCE():
         plt.show()   
 
 
-    def start_c(self):
+    def start_c(self, input_x):
 
         poly_initial_q0 = self.poly.copy()
         poly_without_q0 = []
@@ -203,13 +222,14 @@ class SPCE():
         #     if q_z not in str(x):
         #         poly_without_q0[i] = 0
 
-        surrogate_q0 = cp.fit_regression(poly_initial_q0, (self.samples_x), self.y_values)
+        # surrogate_q0 = cp.fit_regression(poly_initial_q0, (self.samples_x[0,:], self.samples_x[1,:], self.samples_x[2,:], self.samples_x[3,:]), self.y_values)
+        surrogate_q0 = cp.fit_regression(poly_initial_q0, (*input_x,), self.y_values)
         self.coef_q0 = np.array(surrogate_q0.coefficients)
 
         poly_initial = surrogate_q0 + numpoly.sum(poly_without_q0)
 
-        c = np.zeros(self.poly.shape[0])
-        coef_q0_index = 0
+        # c = np.zeros(self.poly.shape[0])
+        # coef_q0_index = 0
 
         # samples_x_shape = self.samples_x.shape
         # if len(samples_x_shape) == 1:
@@ -217,30 +237,35 @@ class SPCE():
         # elif len(samples_x_shape) == 2:
         #     q_number = samples_x_shape[0]
 
-        for j, term in enumerate(self.poly):
-            term_str = str(term)
-            if q in term_str:
-                c[j] = np.random.normal(0, 1)  
-            else:
-                c[j] = self.coef_q0[coef_q0_index]
-                coef_q0_index += 1
+        # for j, term in enumerate(self.poly):
+        #     term_str = str(term)
+        #     if q in term_str:
+        #         c[j] = np.random.normal(0, 1)  
+        #     else:
+        #         c[j] = self.coef_q0[coef_q0_index]
+        #         coef_q0_index += 1
        
         # plt.figure()
+        # plt.scatter(self.samples_x[0,:], self.y_values, label='reference')
+        # plt.scatter(self.samples_x[0,:], (surrogate_q0(self.samples_x[0,:], self.samples_x[1,:], self.samples_x[2,:], self.samples_x[3,:])), label='poly')
+        # plt.legend()
+        # plt.show()
+
+        # plt.figure()
         # plt.scatter(self.samples_x, self.y_values, label='reference')
-        # plt.scatter(self.samples_x, (surrogate_q0(self.samples_x)), label='poly')
+        # plt.scatter(self.samples_x, (surrogate_q0(self.samples_x[:])), label='poly')
         # plt.legend()
         # plt.show()
 
         return surrogate_q0, poly_initial
     
-    def loo_error(self, mean_ref, surrogate_q0):
+    def loo_error(self, mean_ref, surrogate_q0, input_x):
 
         poly_initial = self.poly.copy()
         q = str(poly_initial.indeterminants[-1])
-
-        mean_poly = surrogate_q0(self.samples_x)
-
+        mean_poly = surrogate_q0(*input_x)
         error_loo = np.mean((mean_ref - mean_poly) ** 2) + np.std(self.y_values)
+        print('error_loo = ', error_loo)
 
         return error_loo
     
@@ -261,7 +286,7 @@ class SPCE():
 
         return error_spce, error_gpr
 
-    def cross_validation(self, sigma_noise, c_initial, poly, poly_initial):
+    def cross_validation(self, sigma_noise, c_initial, poly):
 
         if self.n_samples < 200:
             n_cv = 10
@@ -273,17 +298,18 @@ class SPCE():
         kf = KFold(n_splits=n_cv, shuffle=True, random_state=42)
         cv_scores = []
 
-        for train_index, val_index in kf.split(self.samples_x):
-            train_x = self.samples_x[train_index]
+        for train_index, val_index in kf.split(self.samples_x[0,:]):
+            train_x = self.samples_x[:,train_index]
             train_y = self.y_values[train_index]
-            poly_matrix = poly(train_x[:, np.newaxis], self.z_j)
-            c_opt, message = self.compute_optimal_c(train_x, train_y, sigma_noise, c_initial, poly_matrix, poly_initial)
-            # print('sigma = ', sigma_noise)
-            val_x = self.samples_x[val_index]
+            # poly_matrix = poly(train_x[:, np.newaxis], self.z_j)
+            input_x_train = [train_x[0,:, np.newaxis], train_x[1,:, np.newaxis], train_x[2,:, np.newaxis], train_x[3,:, np.newaxis]]
+            c_opt, message = self.compute_optimal_c(train_x, train_y, sigma_noise, c_initial, poly, input_x_train)
+            val_x = self.samples_x[:,val_index]
             val_y = self.y_values[val_index]
-            poly_matrix_val = poly(val_x[:, np.newaxis], self.z_j)
+            input_x_val = [val_x[0,:, np.newaxis], val_x[1,:, np.newaxis], val_x[2,:, np.newaxis], val_x[3,:, np.newaxis]]
+            # poly_matrix_val = poly(val_x[:, np.newaxis], self.z_j)
             normalized_likelihood=[]
-            likelihood = - self.likelihood_function(c_opt, val_x, val_y, sigma_noise, poly_matrix_val, poly_initial, 1, normalized_likelihood)
+            likelihood = - self.likelihood_function(c_opt, val_x, val_y, sigma_noise, poly, input_x_val, 1, normalized_likelihood)
             cv_scores.append(likelihood)
             # print('cv_score = ', cv_scores[-1])
 
@@ -292,15 +318,15 @@ class SPCE():
         return total_cv_score
     
 
-    def compute_optimal_sigma(self, c_initial, poly, sigma_range, poly_initial):
+    def compute_optimal_sigma(self, c_initial, poly, sigma_range):
 
         def objective(sigma):
             sigma_noise = sigma[0]  
-            return self.cross_validation(sigma_noise, c_initial, poly, poly_initial)
+            return self.cross_validation(sigma_noise, c_initial, poly)
 
         start = time.time()	
         optimizer = BayesianOptimization(f=lambda sigma: objective([sigma]), pbounds={'sigma': sigma_range}, random_state=42, allow_duplicate_points=True)
-        optimizer.maximize(init_points=10, n_iter=40)
+        optimizer.maximize(init_points=5, n_iter=10)
 
         print('Time: ', time.time() - start)
         optimal_sigma = optimizer.max['params']['sigma']
