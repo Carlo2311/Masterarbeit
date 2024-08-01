@@ -1,7 +1,7 @@
 import numpy as np
 import chaospy as cp
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize, differential_evolution, minimize_scalar
+from scipy.optimize import minimize, differential_evolution, minimize_scalar, OptimizeResult
 import time
 import pandas as pd
 import numpoly
@@ -96,17 +96,20 @@ class SPCE():
             grad_like =  polynomials * nominator / (np.sqrt(2 * np.pi) * sigma_noise ** 3) * np.exp(-((y_values[:, np.newaxis] - pce) ** 2) / (2 * sigma_noise ** 2)) * self.w_j
             grad_like_sum = np.sum(grad_like, axis=2)
             like = np.sum(likelihood_quadrature, axis=1)
-            grad = np.sum((1 / (like)) * (- grad_like_sum), axis=1)
+            grad = -np.sum((1 / (like)) * (grad_like_sum), axis=1)
 
             return grad
         
         normalized_likelihood = []
         initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_noise, poly, input_x, 1, normalized_likelihood)
-        
+
+        # from scipy.optimize import check_grad
+        # print(check_grad(self.likelihood_function, gradient_function, c_initial, samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood))
+
         start = time.time()
         # result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood), method='BFGS') #, jac=gradient_function)
         result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function)
-        # print('time = ', time.time() - start)
+        print('time = ', time.time() - start)
         optimized_c = result.x
         # print(result.message)
 
@@ -212,8 +215,9 @@ class SPCE():
         q = str(poly_initial_q0.indeterminants[-1])
         for i, x in enumerate(poly_initial_q0): 
             if q in str(x):
-                poly_initial_q0[i] = 0
                 poly_without_q0.append(np.random.normal(0, 1) * x)
+                poly_initial_q0[i] = 0
+                
 
         poly_without_q0 = cp.polynomial(poly_without_q0)
         # poly_without_q0 = self.poly.copy()
@@ -223,31 +227,15 @@ class SPCE():
         #         poly_without_q0[i] = 0
 
         # surrogate_q0 = cp.fit_regression(poly_initial_q0, (self.samples_x[0,:], self.samples_x[1,:], self.samples_x[2,:], self.samples_x[3,:]), self.y_values)
-        surrogate_q0 = cp.fit_regression(poly_initial_q0, (*input_x,), self.y_values)
-        self.coef_q0 = np.array(surrogate_q0.coefficients)
+        self.surrogate_q0 = cp.fit_regression(poly_initial_q0, (*input_x,), self.y_values)
+        self.coef_q0 = np.array(self.surrogate_q0.coefficients)
 
-        poly_initial = surrogate_q0 + numpoly.sum(poly_without_q0)
+        poly_initial = self.surrogate_q0 + numpoly.sum(poly_without_q0)
 
-        # c = np.zeros(self.poly.shape[0])
-        # coef_q0_index = 0
-
-        # samples_x_shape = self.samples_x.shape
-        # if len(samples_x_shape) == 1:
-        #     q_number = 1  
-        # elif len(samples_x_shape) == 2:
-        #     q_number = samples_x_shape[0]
-
-        # for j, term in enumerate(self.poly):
-        #     term_str = str(term)
-        #     if q in term_str:
-        #         c[j] = np.random.normal(0, 1)  
-        #     else:
-        #         c[j] = self.coef_q0[coef_q0_index]
-        #         coef_q0_index += 1
        
         # plt.figure()
         # plt.scatter(self.samples_x[0,:], self.y_values, label='reference')
-        # plt.scatter(self.samples_x[0,:], (surrogate_q0(self.samples_x[0,:], self.samples_x[1,:], self.samples_x[2,:], self.samples_x[3,:])), label='poly')
+        # plt.scatter(self.samples_x[0,:], (self.surrogate_q0(self.samples_x[0,:], self.samples_x[1,:], self.samples_x[2,:], self.samples_x[3,:])), label='poly')
         # plt.legend()
         # plt.show()
 
@@ -257,7 +245,7 @@ class SPCE():
         # plt.legend()
         # plt.show()
 
-        return surrogate_q0, poly_initial
+        return self.surrogate_q0, poly_initial
     
     def loo_error(self, mean_ref, surrogate_q0, input_x):
 
@@ -333,5 +321,14 @@ class SPCE():
         print(f'Optimal sigma: {optimal_sigma}')
         return optimal_sigma
     
+    def standard_pce(self, dist_X, x, y, q):
+        
+        poly_pce = cp.generate_expansion(self.p, dist_X, cross_truncation=q)
+        surrogate = cp.fit_regression(poly_pce, (*x,), y)
+
+        mean = cp.E(surrogate, dist_X) 
+        std = cp.Std(surrogate, dist_X)   
+        
+        return surrogate
 
     
