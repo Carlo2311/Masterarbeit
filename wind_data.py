@@ -60,13 +60,13 @@ df_sorted = df.sort_values(by='Case')
 
 case = df_sorted['Case'].to_numpy()
 root_myb_mean = df_sorted['RootMyb_[kN-m]_mean'].to_numpy()
-twh_tx_mean = df_sorted['TwHtALxt_[m/s^]_mean'].to_numpy()
-twh_ty_mean = df_sorted['TwHtALyt_[m/s^]_mean'].to_numpy()
-twh_tz_mean = df_sorted['TwHtALzt_[m/s^]_mean'].to_numpy()
+twh_tx_mean = df_sorted['TwHtALxt_[m/s^]_mean'].to_numpy() *1000
+twh_ty_mean = df_sorted['TwHtALyt_[m/s^]_mean'].to_numpy() 
+twh_tz_mean = df_sorted['TwHtALzt_[m/s^]_mean'].to_numpy() *1000
 root_myb_sdv = df_sorted['RootMyb_[kN-m]_sdv'].to_numpy()
-twh_tx_sdv = df_sorted['TwHtALxt_[m/s^]_sdv'].to_numpy()
-twh_ty_sdv = df_sorted['TwHtALyt_[m/s^]_sdv'].to_numpy()
-twh_tz_sdv = df_sorted['TwHtALzt_[m/s^]_sdv'].to_numpy()
+twh_tx_sdv = df_sorted['TwHtALxt_[m/s^]_sdv'].to_numpy() 
+twh_ty_sdv = df_sorted['TwHtALyt_[m/s^]_sdv'].to_numpy() 
+twh_tz_sdv = df_sorted['TwHtALzt_[m/s^]_sdv'].to_numpy() 
 root_myb_min = df_sorted['RootMyb_[kN-m]_min'].to_numpy()
 twh_tx_min = df_sorted['TwHtALxt_[m/s^]_min'].to_numpy()
 twh_ty_min = df_sorted['TwHtALyt_[m/s^]_min'].to_numpy()
@@ -77,13 +77,19 @@ twh_ty_max = df_sorted['TwHtALyt_[m/s^]_max'].to_numpy()
 twh_tz_max = df_sorted['TwHtALzt_[m/s^]_max'].to_numpy()
 
 root_myb_mean_normalized = root_myb_mean / max(root_myb_mean)
+twh_tx_mean_normalized = twh_tx_mean / max(twh_tx_mean) 
+twh_ty_mean_normalized = twh_ty_mean / max(twh_ty_mean) 
+twh_tz_mean_normalized = twh_tz_mean / max(twh_tz_mean) 
+twh_tx_sdv_normalized = twh_tx_sdv / max(twh_tx_sdv) 
+twh_ty_sdv_normalized = twh_ty_sdv / max(twh_ty_sdv) 
+twh_tz_sdv_normalized = twh_tz_sdv / max(twh_tz_sdv) 
 
 # standard
 # samples_y = root_myb_mean[:9000]
 # samples_y_test = root_myb_mean[9000:]
 
 # normalized
-samples_y = root_myb_mean_normalized[:9000]
+samples_y = root_myb_mean_normalized[:9000] 
 samples_y_test = root_myb_mean_normalized[9000:]
 
 samples_y_resized = np.reshape(samples_y, (30, 300))
@@ -95,9 +101,9 @@ samples_y_test_resized = np.reshape(samples_y_test, (30, 30))
 # plt.figure()
 # plt.scatter(samples_x[0,:], samples_y, s=1)
 # plt.xlabel('windspeed [m/s]')
-# plt.ylabel('blades root bending moments [kN-m]')
+# plt.ylabel('tower acceleration [mm/s^2]')
 # plt.grid()
-# plt.draw()
+# plt.show()
 
 ####### test data simulation #######################################################
 
@@ -115,6 +121,12 @@ rho_scada = filtered_df['Air Density [kg/m3]'].to_numpy()
 
 # plt.figure()
 # plt.scatter(windspeed_scada, load_b1_mean)
+
+# plt.figure()
+# plt.scatter(windspeed_scada, turbulence_intensity_scada)
+
+# plt.figure()
+# plt.scatter(windspeed_scada, rho_scada)
 # plt.show()
 
 ############## SPCE #################################################################
@@ -165,10 +177,10 @@ surrogate_pce_std = spce.standard_pce(dist_X, samples_pce_x, samples_pce_std_y, 
 
 # print('c = ', optimized_c)
 
-# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/c_all_inputs_q05_norm3.npy', optimized_c)
-# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/sigma_all_inputs_q05_norm3.npy', sigma_noise)
-optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/c_all_inputs_q05_norm3.npy')
-sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/sigma_all_inputs_q05_norm3.npy')
+# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/c_q05_norm_p3.npy', optimized_c)
+# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/sigma_q05_norm_p3.npy', sigma_noise)
+optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/c_q05_norm_p5.npy')
+sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/sigma_q05_norm_p5.npy')
 print('sigma = ', sigma_noise)
 
 
@@ -202,24 +214,30 @@ print('sigma = ', sigma_noise)
 dist_eps = cp.Normal(0, sigma_noise)
 # n_x = 1000
 n_samples_test = 10000
+samples_test = np.linspace(0, 25, 900)
 input_x_test = [samples_x_test[0,:, np.newaxis], samples_x_test[1,:, np.newaxis], samples_x_test[2,:, np.newaxis], samples_x_test[3,:, np.newaxis]]
+# input_x_test = [samples_x_test[0,0, np.newaxis], samples_x_test[1,0, np.newaxis], samples_x_test[2,0, np.newaxis], samples_x_test[3,:, np.newaxis]] # 3 parameters fixed
 samples_z_test = dist_Z.sample(n_samples_test)
 samples_eps_test = dist_eps.sample(n_samples_test)
 dist_spce = spce.generate_dist_spce(samples_x_test, samples_z_test, samples_eps_test, optimized_c, polynomials, input_x_test)
 
 pce_mean_dist = surrogate_pce_mean(samples_x_test[0,:], samples_x_test[1,:], samples_x_test[2,:], samples_x_test[3,:])
 pce_std_dist = np.abs(surrogate_pce_std(samples_x_test[0,:], samples_x_test[1,:], samples_x_test[2,:], samples_x_test[3,:]))
+dist_pce = np.random.normal(pce_mean_dist[:, np.newaxis], pce_std_dist[:, np.newaxis], (samples_x_test.shape[1], n_samples_test))
 
 mean_spce = np.mean(dist_spce, axis=1)
 std_spce = np.std(dist_spce, axis=1)
 mean_sim = np.mean(samples_y_test_resized, axis=0)
 std_sim = np.std(samples_y_test_resized, axis=0)
 
-nrmse = (np.sqrt(np.mean((mean_spce[:30] - mean_sim)**2))) / (np.mean(mean_sim))
+nrmse_spce = (np.sqrt(np.mean((mean_spce[:30] - mean_sim)**2))) / (np.mean(mean_sim))
+nrmse_pce = (np.sqrt(np.mean((pce_mean_dist[:30] - mean_sim)**2))) / (np.mean(mean_sim))
+print('nrmse spce = ', nrmse_spce)
+print('nrmse pce = ', nrmse_pce)
 
 index_input_x = 0
 sorted_indices = np.argsort(samples_x_test_resized[index_input_x,0,:])
-x_index_plot = sorted_indices[13]
+x_index_plot = sorted_indices[17]
 
 mean_spce_plot = mean_spce[:30]#[sorted_indices]
 mean_sim_plot = mean_sim#[sorted_indices]
@@ -230,14 +248,35 @@ dist_spce_plot = dist_spce[x_index_plot,:]
 std_spce_plot = std_spce[:30]#[sorted_indices]
 std_sim_plot = std_sim#[sorted_indices]
 std_pce = pce_std_dist[:30]#[sorted_indices]
-
-dist_pce = np.random.normal(pce_mean_dist[:, np.newaxis], pce_std_dist[:, np.newaxis], (samples_x_test.shape[1], 10000))
 dist_pce_x_plot = dist_pce[x_index_plot,:]
 
 # dist_pce_x = cp.Normal(mean_pce_plot[x_index_plot], std_pce[x_index_plot])
 # dist_pce_x_plot = dist_pce_x.sample(10000)
 
-print('x = ', )
+
+###### KS test ####################################################################
+spce_dist_ks = dist_spce[:30,:]
+pce_dist_ks = dist_pce[:30,:]
+test_statistic_spce = np.zeros(spce_dist_ks.shape[0])
+p_value_spce = np.zeros(spce_dist_ks.shape[0])
+test_statistic_pce = np.zeros(pce_dist_ks.shape[0])
+p_value_pce = np.zeros(pce_dist_ks.shape[0])
+
+for i in range(spce_dist_ks.shape[0]):
+    test_statistic_spce[i], p_value_spce[i] = stats.ks_2samp(spce_dist_ks[i,:], y_samples_plot)
+    test_statistic_pce[i], p_value_pce[i] = stats.ks_2samp(pce_dist_ks[i,:], y_samples_plot)
+
+test_statistic_spce_mean = np.mean(test_statistic_spce)
+p_value_spce_mean = np.mean(p_value_spce)
+test_statistic_pce_mean = np.mean(test_statistic_pce)
+p_value_pce_mean = np.mean(p_value_pce)
+print('test statistic spce mean = ', test_statistic_spce_mean)
+print('p value spce mean = ', p_value_spce_mean)
+print('test statistic pce mean = ', test_statistic_pce_mean)
+print('p value pce mean = ', p_value_pce_mean)  
+
+###### plot ####################################################################
+
 print('x = ', samples_x_test_resized[index_input_x,0,:][x_index_plot])
 
 plt.figure()
@@ -249,8 +288,8 @@ plt.xlabel('blade load')
 plt.ylabel('pdf')
 
 plt.figure()
-plt.scatter(samples_plot, mean_pce_plot, color='g', label='predicted mean PCE')
-plt.errorbar(samples_plot, mean_pce_plot, yerr=std_pce, fmt='o', capsize=5, color='g', label='std PCE')
+# plt.scatter(samples_plot, mean_pce_plot, color='g', label='predicted mean PCE')
+# plt.errorbar(samples_plot, mean_pce_plot, yerr=std_pce, fmt='o', capsize=5, color='g', label='std PCE')
 plt.scatter(samples_plot, mean_spce_plot, label='predicted mean SPCE')
 plt.errorbar(samples_plot, mean_spce_plot, yerr=std_spce_plot, fmt='o', capsize=5, label='std SPCE')
 # plt.fill_between(samples_plot, mean_spce_plot - std_spce_plot, mean_spce_plot + std_spce_plot, alpha=0.5)
@@ -262,17 +301,6 @@ plt.ylabel('Blade Load [kN-m]')
 plt.grid()
 # tikzplotlib.save(rf"tex_files\wind_data\predicted_mean_std.tex")
 plt.legend()
-
-
-spce_dist_ks = dist_spce[:30,:]
-pce_dist_ks = dist_pce_x_plot[:30]
-
-test_statistic_spce, p_value_spce = stats.ks_2samp(dist_spce_plot, y_samples_plot)
-test_statistic_pce, p_value_pce = stats.ks_2samp(dist_pce_x_plot, y_samples_plot)
-print('test statistic SPCE = ', test_statistic_spce)
-print('p value SPCE = ', p_value_spce)
-print('test statistic PCE = ', test_statistic_pce)
-print('p value PCE = ', p_value_pce)
 
 fig5 = plt.figure()
 ax5 = plt.subplot()
@@ -291,11 +319,11 @@ plt.show()
 
 
 
-from scipy.stats import gaussian_kde
-# print(samples_x_test[0])
-kde = gaussian_kde(dist_spce[0,:])
-x_values_spce = np.linspace(min(dist_spce[0,:]), max(dist_spce[0,:]), 1000) 
-dist_spce_pdf_values = kde(x_values_spce)
+# from scipy.stats import gaussian_kde
+# # print(samples_x_test[0])
+# kde = gaussian_kde(dist_spce[0,:])
+# x_values_spce = np.linspace(min(dist_spce[0,:]), max(dist_spce[0,:]), 1000) 
+# dist_spce_pdf_values = kde(x_values_spce)
 
 # plt.figure()            
 # plt.plot(x_values_spce, dist_spce_pdf_values, label='SPCE')
@@ -304,7 +332,7 @@ dist_spce_pdf_values = kde(x_values_spce)
 # plt.hist(samples_gpr, bins=bin_edges, density=True, alpha=0.5, label='distribution GPR')
 # plt.xlabel('y')
 # plt.ylabel('pdf')
-plt.show()
+# plt.show()
 
 
 
