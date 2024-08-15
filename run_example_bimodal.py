@@ -29,7 +29,7 @@ for i in range(error_n.shape[0]):
             example = AnalyticalExample(n_samples, y)
             pdf, mean_1, mean_2, sigma_1, sigma_2, mean_12, sigma_12 = example.calculate_pdf(samples_x)
             samples_y = example.create_data_points(mean_1, mean_2, sigma_1, sigma_2, 1, samples_x).reshape(-1)
-            # example.plot_example(samples_x, samples_y, mean_1, mean_2, pdf, indices)
+            example.plot_example(samples_x, samples_y, mean_1, mean_2, pdf, indices)
             # example.plot_pdf(pdf, samples_x_i, indices)
 
             p = 5
@@ -74,7 +74,7 @@ for i in range(error_n.shape[0]):
         # sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)
         # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c)
 
-        # sigma_noise = spce.compute_optimal_sigma(optimized_c, poly_matrix, sigma_range) # cross validation
+        sigma_noise = spce.compute_optimal_sigma(optimized_c, polynomials, sigma_range) # cross validation
         # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_1/sigma_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_CV.npy', sigma_noise)
 
         # optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
@@ -114,7 +114,8 @@ for i in range(error_n.shape[0]):
         mean_prediction_gpr, std_prediction_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, mean_12_test, sigma_12_test)
         spce.plot_distribution(dist_spce, y, pdf_test, samples_x_test, samples_y_test, mean_prediction_gpr, std_prediction_gpr)
 
-        error_n[i, n_i], error_gpr[i, n_i] = spce.compute_error(dist_spce, samples_y_test, dist_gpr)
+        error_n[i, n_i] = spce.compute_error(dist_spce, samples_y_test)
+        error_gpr[i, n_i] = spce.compute_error(dist_gpr, samples_y_test)
         print('error spce = ', error_n[i, n_i])
         print('error spce = ', error_gpr[i, n_i])
 

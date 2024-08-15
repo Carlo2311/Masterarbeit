@@ -1,7 +1,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 import chaospy as cp
-# import tikzplotlib
+import tikzplotlib
 
 class AnalyticalExample():
 
@@ -9,6 +9,7 @@ class AnalyticalExample():
         self.n_samples = n_samples
         self.y = y
         self.normal_distribution = cp.Normal(0, 1)
+        # self.normal_distribution = cp.Uniform(-1, 1)
 
     def calculate_pdf(self, samples_x):
         samples_x_np = np.asarray(samples_x)[:, np.newaxis]
@@ -21,12 +22,13 @@ class AnalyticalExample():
 
         return pdf, mean, sigma
     
-    def create_data_points(self, mean, sigma, samples_plot, samples_x):
+    def create_data_points(self, mean, sigma, samples_plot, samples_x, pdf):
 
         samples_y = np.zeros((samples_x.shape[0], samples_plot))
 
         for i in range(samples_x.shape[0]):
             dist_1 = cp.Normal(mean[i], sigma[i])
+            # dist_1 = cp.Uniform(min(pdf[i,:] + mean[i]),max(pdf[i,:] + mean[i])) # falsch
             samples_1 = dist_1.sample(samples_plot)
             samples_y[i, :] = samples_1[:]
 
@@ -40,19 +42,19 @@ class AnalyticalExample():
         plt.figure(figsize=(10,6))
         plt.plot(samples_x[sorted_indices], mean_1[sorted_indices], 'r', label='Component 1')
         plt.axvline(samples_x[indices[0]], color='black', linewidth=0.5)
-        plt.plot(0.25*pdf[indices[0],:] + samples_x[indices[0]], self.y, 'b-.', linewidth=0.6, label='Response PDFs')
+        plt.plot(0.25*pdf[indices[0],:] + samples_x[indices[0]], self.y, 'b-', linewidth=0.6, label='Response PDFs')
         plt.axvline(samples_x[indices[1]], color='black', linewidth=0.5)
-        plt.plot(0.25*pdf[indices[1],:] + samples_x[indices[1]], self.y, 'b-.', linewidth=0.6)
+        plt.plot(0.25*pdf[indices[1],:] + samples_x[indices[1]], self.y, 'b-', linewidth=0.6)
         plt.axvline(samples_x[indices[2]], color='black', linewidth=0.5)
-        plt.plot(0.25*pdf[indices[2],:] + samples_x[indices[2]], self.y, 'b-.', linewidth=0.6)
+        plt.plot(0.25*pdf[indices[2],:] + samples_x[indices[2]], self.y, 'b-', linewidth=0.6)
         plt.axvline(samples_x[indices[3]], color='black', linewidth=0.5)
-        plt.plot(0.25*pdf[indices[3],:] + samples_x[indices[3]], self.y, 'b-.', linewidth=0.6)
+        plt.plot(0.25*pdf[indices[3],:] + samples_x[indices[3]], self.y, 'b-', linewidth=0.6)
         plt.scatter(samples_x, samples_y, s=1, label='Data')
         plt.xlabel('x')
         plt.ylabel('y')
-        plt.legend()
+        # plt.legend()
         plt.grid()
-        # tikzplotlib.save(rf"tex_files\analtical_example2.tex")
+        # tikzplotlib.save(rf"tex_files\unimodal\example_unimodal.tex")
         plt.show()
     
     def plot_pdf(self, pdf, samples_x, indices):

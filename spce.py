@@ -123,22 +123,22 @@ class SPCE():
         
         return optimized_c, result.message
     
-    def optimize_sigma(self, samples_x, y_values, sigma_initial, c_initial):
+    def optimize_sigma(self, samples_x, y_values, sigma_initial, c_initial, poly, input_x, sigma_range):
         
         def objective(sigma):
-            return self.likelihood_function(c_initial, samples_x, y_values, sigma, initial_likelihood, [])
+            return self.likelihood_function(c_initial, samples_x, y_values, sigma, poly, input_x, initial_likelihood, [])
         
-        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_initial, 1, [])
-        result = minimize_scalar(objective, bounds=(100, 15000), method='bounded')
+        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_initial, poly, input_x, 1, [])
+        result = minimize_scalar(objective, bounds=(sigma_range), method='bounded')
         optimized_sigma = result.x
         print("Optimized sigma:", optimized_sigma)
         
         return optimized_sigma
     
-    def plot_sigma(self, samples_x, y_values, sigma_range, c_initial):
-        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_range[0], 1, [])
+    def plot_sigma(self, samples_x, y_values, sigma_range, c_initial, poly, input_x):
+        initial_likelihood = self.likelihood_function(c_initial, samples_x, y_values, sigma_range[0], poly, input_x, 1, [])
         sigma_values = np.linspace(sigma_range[0], sigma_range[1], 100)
-        likelihoods = [self.likelihood_function(c_initial, samples_x, y_values,sigma, initial_likelihood, []) for sigma in sigma_values]
+        likelihoods = [self.likelihood_function(c_initial, samples_x, y_values, sigma, poly, input_x, initial_likelihood, []) for sigma in sigma_values]
         
         plt.figure(figsize=(10, 6))
         plt.plot(sigma_values, likelihoods)
@@ -202,7 +202,7 @@ class SPCE():
             plt.ylabel('pdf')
             plt.xlim(-4, 8)
             plt.title(f'x = {sample}')
-            # plt.legend()  
+            plt.legend()  
             # tikzplotlib.save(rf"tex_files\bimodal\spce_normal_{sample}.tex")  
 
         plt.show()   
@@ -258,7 +258,7 @@ class SPCE():
         return error_loo
     
 
-    def compute_error(self, dist_spce, samples_y, dist_gpr):
+    def compute_error(self, dist_spce, samples_y):
 
         u = np.linspace(0, 1, dist_spce.shape[0])
         squared_diff = (np.quantile(dist_spce, u, axis=1) - np.quantile(samples_y, u, axis=1)) ** 2
@@ -267,15 +267,15 @@ class SPCE():
         variance = np.var(samples_y)
         error_spce = d_ws / variance
 
-        squared_diff = (np.quantile(dist_gpr, u, axis=1) - np.quantile(samples_y, u, axis=1)) ** 2
-        d_ws_i = np.trapz(squared_diff, u, axis=1)
-        d_ws = np.sum(d_ws_i) / d_ws_i.shape[0]
-        error_gpr = d_ws / variance
+        # squared_diff = (np.quantile(dist_gpr, u, axis=1) - np.quantile(samples_y, u, axis=1)) ** 2
+        # d_ws_i = np.trapz(squared_diff, u, axis=1)
+        # d_ws = np.sum(d_ws_i) / d_ws_i.shape[0]
+        # error_gpr = d_ws / variance
 
-        return error_spce, error_gpr
+        return error_spce #, error_gpr
 
     def cross_validation(self, sigma_noise, c_initial, poly):
-
+        self.n_samples = self.samples_x.shape[0]
         if self.n_samples < 200:
             n_cv = 10
         if self.n_samples >= 200 and self.n_samples < 1000:
@@ -286,16 +286,19 @@ class SPCE():
         kf = KFold(n_splits=n_cv, shuffle=True, random_state=42)
         cv_scores = []
 
-        for train_index, val_index in kf.split(self.samples_x[0,:]):
-            train_x = self.samples_x[:,train_index]
+        # for train_index, val_index in kf.split(self.samples_x[0,:]):
+        for train_index, val_index in kf.split(self.samples_x):
+            # train_x = self.samples_x[:,train_index]
+            train_x = self.samples_x[train_index]
             train_y = self.y_values[train_index]
-            # poly_matrix = poly(train_x[:, np.newaxis], self.z_j)
-            input_x_train = [train_x[0,:, np.newaxis], train_x[1,:, np.newaxis], train_x[2,:, np.newaxis], train_x[3,:, np.newaxis]]
+            # input_x_train = [train_x[0,:, np.newaxis], train_x[1,:, np.newaxis], train_x[2,:, np.newaxis], train_x[3,:, np.newaxis]]
+            input_x_train = [train_x[:, np.newaxis]]
             c_opt, message = self.compute_optimal_c(train_x, train_y, sigma_noise, c_initial, poly, input_x_train)
-            val_x = self.samples_x[:,val_index]
+            # val_x = self.samples_x[:,val_index]
+            val_x = self.samples_x[val_index]
             val_y = self.y_values[val_index]
-            input_x_val = [val_x[0,:, np.newaxis], val_x[1,:, np.newaxis], val_x[2,:, np.newaxis], val_x[3,:, np.newaxis]]
-            # poly_matrix_val = poly(val_x[:, np.newaxis], self.z_j)
+            # input_x_val = [val_x[0,:, np.newaxis], val_x[1,:, np.newaxis], val_x[2,:, np.newaxis], val_x[3,:, np.newaxis]]
+            input_x_val = [val_x[:, np.newaxis]]
             normalized_likelihood=[]
             likelihood = - self.likelihood_function(c_opt, val_x, val_y, sigma_noise, poly, input_x_val, 1, normalized_likelihood)
             cv_scores.append(likelihood)
@@ -314,9 +317,9 @@ class SPCE():
 
         start = time.time()	
         optimizer = BayesianOptimization(f=lambda sigma: objective([sigma]), pbounds={'sigma': sigma_range}, random_state=42, allow_duplicate_points=True)
-        optimizer.maximize(init_points=5, n_iter=10)
+        optimizer.maximize(init_points=5, n_iter=25)
 
-        print('Time: ', time.time() - start)
+        # print('Time: ', time.time() - start)
         optimal_sigma = optimizer.max['params']['sigma']
         print(f'Optimal sigma: {optimal_sigma}')
         return optimal_sigma
