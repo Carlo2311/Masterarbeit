@@ -54,7 +54,7 @@ class AnalyticalExample():
         plt.ylabel('y')
         # plt.legend()
         plt.grid()
-        # tikzplotlib.save(rf"tex_files\unimodal\example_unimodal.tex")
+        # tikzplotlib.save(rf"tex_files\unimodal\example_unimodal_1500.tex")
         plt.show()
     
     def plot_pdf(self, pdf, samples_x, indices):

@@ -253,7 +253,7 @@ class SPCE():
         q = str(poly_initial.indeterminants[-1])
         mean_poly = surrogate_q0(*input_x)
         error_loo = np.mean((mean_ref - mean_poly) ** 2) + np.std(self.y_values)
-        print('error_loo = ', error_loo)
+        # print('error_loo = ', error_loo)
 
         return error_loo
     

@@ -60,11 +60,11 @@ sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
 sigma_noise_range = np.linspace(np.log(np.sqrt(error_loo)), np.log(1), 4)
 sigma_noise_sorted = sorted(np.exp(sigma_noise_range), reverse=True)
 
-for sigma_noise_i in sigma_noise_sorted:
-    print('sigma = ', sigma_noise_i)
-    optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise_i, optimized_c, polynomials, input_x)
-    print(optimized_c)
-    print(message)
+# for sigma_noise_i in sigma_noise_sorted:
+#     print('sigma = ', sigma_noise_i)
+#     optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise_i, optimized_c, polynomials, input_x)
+#     print(optimized_c)
+#     print(message)
 
 
 # sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
@@ -74,7 +74,7 @@ for sigma_noise_i in sigma_noise_sorted:
 # sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
 # optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise_i, optimized_c, polynomials, input_x)
 
-sigma_noise = spce.compute_optimal_sigma(optimized_c, polynomials, sigma_range) # cross validation
+# sigma_noise = spce.compute_optimal_sigma(optimized_c, polynomials, sigma_range) # cross validation
 
 # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_2/sigma_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy', sigma_noise)
 # optimized_c_new = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
@@ -82,11 +82,12 @@ sigma_noise = spce.compute_optimal_sigma(optimized_c, polynomials, sigma_range) 
 # optimized_c = np.load(fr'solutions_example_2/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy') 
 # spce.plot_likelihood_vs_sigma(samples_x, samples_y, sigma_range, optimized_c)
 
-np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/c_50_30_cv.npy', optimized_c)
-np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/sigma_50_30_cv.npy', sigma_noise)
+# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/c_50_30_cv.npy', optimized_c)
+# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/sigma_50_30_cv.npy', sigma_noise)
 
-# optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/c_solutions_unimodal/test.npy')
-# sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/sigma_solutions_unimodal/test.npy')
+optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/c_50_30.npy')
+sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/sigma_50_30.npy')
+print('sigma_noise 50 30 = ', sigma_noise)
 
 
 ##################### test surrogate ###############################################################
@@ -100,7 +101,7 @@ samples_eps_test = dist_eps.sample(n_samples_test)
 input_x_test = [samples_x_test[:, np.newaxis]]
 dist_spce = spce.generate_dist_spce(samples_x_test, samples_z_test, samples_eps_test, optimized_c, polynomials, input_x_test)
 
-# calculate Y of analytical model 
+#### calculate Y of analytical model 
 pdf_test, mean_test, sigma_test = example.calculate_pdf(samples_x_test)
 samples_y_test = example.create_data_points(mean_test, sigma_test, n_samples_test, samples_x_test, pdf_test)
 
