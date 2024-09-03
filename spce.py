@@ -97,6 +97,7 @@ class SPCE():
             grad_like_sum = np.sum(grad_like, axis=2)
             like = np.sum(likelihood_quadrature, axis=1)
             grad = -np.sum((1 / (like)) * (grad_like_sum), axis=1)
+            # print('grad = ', grad)
 
             return grad
         
@@ -118,7 +119,7 @@ class SPCE():
         # plt.xlabel('iteration')
         # plt.ylabel('likelihood')
         # plt.yscale('log')
-        # tikzplotlib.save(rf"tex_files\bimodal\iteration_analytical.tex")
+        # # tikzplotlib.save(rf"tex_files\bimodal\iteration_analytical.tex")
         # plt.show()
         
         return optimized_c, result.message
@@ -145,6 +146,7 @@ class SPCE():
         plt.xlabel('sigma')
         plt.ylabel('likelihood')
         plt.grid()
+        # tikzplotlib.save(rf"tex_files\bimodal\MLE_simga_likelihood.tex")  
         plt.show()
 
 
@@ -275,7 +277,7 @@ class SPCE():
         return error_spce #, error_gpr
 
     def cross_validation(self, sigma_noise, c_initial, poly):
-        self.n_samples = self.samples_x.shape[0]
+        self.n_samples = self.samples_x.shape[1]
         if self.n_samples < 200:
             n_cv = 10
         if self.n_samples >= 200 and self.n_samples < 1000:
@@ -286,19 +288,19 @@ class SPCE():
         kf = KFold(n_splits=n_cv, shuffle=True, random_state=42)
         cv_scores = []
 
-        # for train_index, val_index in kf.split(self.samples_x[0,:]):
-        for train_index, val_index in kf.split(self.samples_x):
-            # train_x = self.samples_x[:,train_index]
-            train_x = self.samples_x[train_index]
+        for train_index, val_index in kf.split(self.samples_x[0,:]): # 4 inputs
+        # for train_index, val_index in kf.split(self.samples_x): # 1 input
+            train_x = self.samples_x[:,train_index] # 4 inputs
+            # train_x = self.samples_x[train_index] # 1 inpute
             train_y = self.y_values[train_index]
-            # input_x_train = [train_x[0,:, np.newaxis], train_x[1,:, np.newaxis], train_x[2,:, np.newaxis], train_x[3,:, np.newaxis]]
-            input_x_train = [train_x[:, np.newaxis]]
+            input_x_train = [train_x[0,:, np.newaxis], train_x[1,:, np.newaxis], train_x[2,:, np.newaxis], train_x[3,:, np.newaxis]] # 4 inputs
+            # input_x_train = [train_x[:, np.newaxis]] # 1 input
             c_opt, message = self.compute_optimal_c(train_x, train_y, sigma_noise, c_initial, poly, input_x_train)
-            # val_x = self.samples_x[:,val_index]
-            val_x = self.samples_x[val_index]
+            val_x = self.samples_x[:,val_index] # 4 inputs
+            # val_x = self.samples_x[val_index] # 1 input
             val_y = self.y_values[val_index]
-            # input_x_val = [val_x[0,:, np.newaxis], val_x[1,:, np.newaxis], val_x[2,:, np.newaxis], val_x[3,:, np.newaxis]]
-            input_x_val = [val_x[:, np.newaxis]]
+            input_x_val = [val_x[0,:, np.newaxis], val_x[1,:, np.newaxis], val_x[2,:, np.newaxis], val_x[3,:, np.newaxis]] # 4 inputs
+            # input_x_val = [val_x[:, np.newaxis]] # 1 input
             normalized_likelihood=[]
             likelihood = - self.likelihood_function(c_opt, val_x, val_y, sigma_noise, poly, input_x_val, 1, normalized_likelihood)
             cv_scores.append(likelihood)
@@ -317,7 +319,7 @@ class SPCE():
 
         start = time.time()	
         optimizer = BayesianOptimization(f=lambda sigma: objective([sigma]), pbounds={'sigma': sigma_range}, random_state=42, allow_duplicate_points=True)
-        optimizer.maximize(init_points=5, n_iter=25)
+        optimizer.maximize(init_points=10, n_iter=20)
 
         # print('Time: ', time.time() - start)
         optimal_sigma = optimizer.max['params']['sigma']
@@ -326,7 +328,7 @@ class SPCE():
     
     def standard_pce(self, dist_X, x, y, q):
         
-        poly_pce = cp.generate_expansion(self.p, dist_X, cross_truncation=q)
+        poly_pce = cp.generate_expansion(5, dist_X, cross_truncation=q)
         surrogate = cp.fit_regression(poly_pce, (*x,), y)
 
         mean = cp.E(surrogate, dist_X) 
