@@ -108,8 +108,8 @@ class SPCE():
         # print(check_grad(self.likelihood_function, gradient_function, c_initial, samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood))
 
         start = time.time()
-        # result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood), method='BFGS') #, jac=gradient_function)
-        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function)
+        # result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood), method='BFGS', options={'disp': True})
+        result = minimize(self.likelihood_function, c_initial, args=(samples_x, y_values, sigma_noise, poly, input_x, initial_likelihood, normalized_likelihood), method='BFGS', jac=gradient_function) #, options={'disp': True})
         print('time = ', time.time() - start)
         optimized_c = result.x
         # print(result.message)
@@ -251,11 +251,8 @@ class SPCE():
     
     def loo_error(self, mean_ref, surrogate_q0, input_x):
 
-        poly_initial = self.poly.copy()
-        q = str(poly_initial.indeterminants[-1])
         mean_poly = surrogate_q0(*input_x)
         error_loo = np.mean((mean_ref - mean_poly) ** 2) + np.std(self.y_values)
-        # print('error_loo = ', error_loo)
 
         return error_loo
     
@@ -269,12 +266,7 @@ class SPCE():
         variance = np.var(samples_y)
         error_spce = d_ws / variance
 
-        # squared_diff = (np.quantile(dist_gpr, u, axis=1) - np.quantile(samples_y, u, axis=1)) ** 2
-        # d_ws_i = np.trapz(squared_diff, u, axis=1)
-        # d_ws = np.sum(d_ws_i) / d_ws_i.shape[0]
-        # error_gpr = d_ws / variance
-
-        return error_spce #, error_gpr
+        return error_spce 
 
     def cross_validation(self, sigma_noise, c_initial, poly):
         self.n_samples = self.samples_x.shape[1]
@@ -328,7 +320,7 @@ class SPCE():
     
     def standard_pce(self, dist_X, x, y, q):
         
-        poly_pce = cp.generate_expansion(5, dist_X, cross_truncation=q)
+        poly_pce = cp.generate_expansion(self.p, dist_X, cross_truncation=q)
         surrogate = cp.fit_regression(poly_pce, (*x,), y)
 
         mean = cp.E(surrogate, dist_X) 

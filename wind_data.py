@@ -18,10 +18,10 @@ yaw_angle = df['Yaw Angle [°]'].to_numpy()
 seed1 = df['Seed 1'].to_numpy()
 seed2 = df['Seed 2'].to_numpy()
 
-windspeed_normalized = windspeed / max(windspeed)
-turbulence_intensity_normalized = turbulence_intensity / max(turbulence_intensity)
-rho_normalized = rho / max(rho)
-yaw_angle_normalized = yaw_angle / max(yaw_angle)
+# windspeed_normalized = windspeed / max(windspeed)
+# turbulence_intensity_normalized = turbulence_intensity / max(turbulence_intensity)
+# rho_normalized = rho / max(rho)
+# yaw_angle_normalized = yaw_angle / max(yaw_angle)
 
 #### input samples x ###############################################################
 # samples_x = np.array([windspeed[:9000], turbulence_intensity[:9000], rho[:9000], yaw_angle[:9000]])
@@ -110,18 +110,18 @@ twh_ty_sdv_normalized = twh_ty_sdv / max(twh_ty_sdv)
 twh_tz_sdv_normalized = twh_tz_sdv / max(twh_tz_sdv) 
 
 ###standard
-samples_y = root_myb_mean[:9000]
-samples_y_resized = np.reshape(samples_y, (30, 300))
-
-samples_y_test = root_myb_mean[9000:]
-samples_y_test_resized = np.reshape(samples_y_test, (30, 30))
-
-#### normalized
-# samples_y = root_myb_mean_normalized[:9000] 
+# samples_y = root_myb_mean[:9000]
 # samples_y_resized = np.reshape(samples_y, (30, 300))
 
-# samples_y_test = root_myb_mean_normalized[9000:]
+# samples_y_test = root_myb_mean[9000:]
 # samples_y_test_resized = np.reshape(samples_y_test, (30, 30))
+
+#### normalized
+samples_y = root_myb_mean_normalized[:9000] 
+samples_y_resized = np.reshape(samples_y, (30, 300))
+
+samples_y_test = root_myb_mean_normalized[9000:]
+samples_y_test_resized = np.reshape(samples_y_test, (30, 30))
 
 # samples_y = root_myb_mean_normalized[300:600] 
 # samples_y_resized = np.reshape(samples_y, (1, 300))
@@ -141,46 +141,46 @@ samples_y_test_resized = np.reshape(samples_y_test, (30, 30))
 # plt.grid()
 # plt.figure()
 # plt.scatter(samples_x[1,:], samples_y, s=1)
-# plt.xlabel('turbulence[m/s]')
+# plt.xlabel('turbulence intensity')
 # plt.ylabel('blade load [mm/s^2]')
 # plt.grid()
 # plt.figure()
 # plt.scatter(samples_x[2,:], samples_y, s=1)
-# plt.xlabel('rho [m/s]')
+# plt.xlabel('rho')
 # plt.ylabel('blade load [mm/s^2]')
 # plt.grid()
 # plt.figure()
 # plt.scatter(samples_x[3,:], samples_y, s=1)
-# plt.xlabel('yaw angle [m/s]')
+# plt.xlabel('yaw angle')
 # plt.ylabel('blade load [mm/s^2]')
 # plt.grid()
 # plt.show()
 
 ####### test data SCADA #######################################################
 
-file_path_output = 'simulation_data/SCADA_Data_2017-2022_with_TI_rho_wsp_binned.csv'
-columns_to_read = ['Wind speed (avg.) [m/s]', 'Load on blade 1 (avg.) []', 'Load on blade 2 (avg.) []', 'Load on blade 3 (avg.) []', 'is_Abnormal', 'turbine','TI_mes','wsp_binned','Air Density [kg/m3]', 'Model', 'Relative wind direction (wind shear) (avg.) [°]']
-df = pd.read_csv(file_path_output, usecols=columns_to_read)
+# file_path_output = 'simulation_data/SCADA_Data_2017-2022_with_TI_rho_wsp_binned.csv'
+# columns_to_read = ['Wind speed (avg.) [m/s]', 'Load on blade 1 (avg.) []', 'Load on blade 2 (avg.) []', 'Load on blade 3 (avg.) []', 'is_Abnormal', 'turbine','TI_mes','wsp_binned','Air Density [kg/m3]', 'Model', 'Relative wind direction (wind shear) (avg.) [°]']
+# df = pd.read_csv(file_path_output, usecols=columns_to_read)
 
-filtered_df = df[(df['turbine'] == 1) & (df['is_Abnormal'] == False)]
+# filtered_df = df[(df['turbine'] == 1) & (df['is_Abnormal'] == False)]
 
-windspeed_scada = filtered_df['Wind speed (avg.) [m/s]'].to_numpy()
-turbulence_intensity_scada = filtered_df['TI_mes'].to_numpy()
-rho_scada = filtered_df['Air Density [kg/m3]'].to_numpy()
-yaw_angle_scada = filtered_df['Relative wind direction (wind shear) (avg.) [°]'].to_numpy()
-load_b1_mean = -filtered_df['Load on blade 1 (avg.) []'].to_numpy() / 1000
-load_b2_mean = -filtered_df['Load on blade 2 (avg.) []'].to_numpy() / 1000
-load_b3_mean = -filtered_df['Load on blade 3 (avg.) []'].to_numpy() / 1000
+# windspeed_scada = filtered_df['Wind speed (avg.) [m/s]'].to_numpy()
+# turbulence_intensity_scada = filtered_df['TI_mes'].to_numpy()
+# rho_scada = filtered_df['Air Density [kg/m3]'].to_numpy()
+# yaw_angle_scada = filtered_df['Relative wind direction (wind shear) (avg.) [°]'].to_numpy()
+# load_b1_mean = -filtered_df['Load on blade 1 (avg.) []'].to_numpy() / 1000
+# load_b2_mean = -filtered_df['Load on blade 2 (avg.) []'].to_numpy() / 1000
+# load_b3_mean = -filtered_df['Load on blade 3 (avg.) []'].to_numpy() / 1000
 
-indices_random = np.random.choice(len(windspeed_scada), 30, replace=False)
+# indices_random = np.random.choice(len(windspeed_scada), 30, replace=False)
 
-windspeed_normalized = windspeed_scada[indices_random] / max(windspeed)
-turbulence_intensity_normalized = turbulence_intensity_scada[indices_random] / max(turbulence_intensity)
-rho_normalized = rho_scada[indices_random] / max(rho)
-yaw_angle_normalized = yaw_angle_scada[indices_random] / max(yaw_angle)
+# windspeed_normalized = windspeed_scada[indices_random] / max(windspeed)
+# turbulence_intensity_normalized = turbulence_intensity_scada[indices_random] / max(turbulence_intensity)
+# rho_normalized = rho_scada[indices_random] / max(rho)
+# yaw_angle_normalized = yaw_angle_scada[indices_random] / max(yaw_angle)
 
-load_mean = (load_b1_mean + load_b2_mean + load_b3_mean) / 3
-load_normalized = load_mean[indices_random] / max(root_myb_mean)
+# load_mean = (load_b1_mean + load_b2_mean + load_b3_mean) / 3
+# load_normalized = load_mean[indices_random] / max(root_myb_mean)
 
 # samples_x_test = np.array([windspeed_normalized, turbulence_intensity_normalized, rho_normalized, yaw_angle_normalized])
 # samples_y_test = load_normalized
@@ -214,10 +214,10 @@ n_samples = windspeed.shape[0]
 p = 5
 # dist_Z = cp.Normal(0, 1)
 dist_Z = cp.Uniform(-1, 1)
-dist_joint = cp.J(dist_X, dist_Z)
-N_q = 15
-q = 0.5 
-
+dist_joint = cp.J(dist_standard, dist_Z)
+N_q = 7
+q = 0.9
+print('q = ', q)
 spce = SPCE(n_samples, p, samples_y.T, samples_x, dist_joint, N_q, dist_Z, q)
 
 poly, z_j = spce.get_params()
@@ -230,77 +230,66 @@ optimized_c = poly_initial.coefficients
 polynomials = cp.prod(poly_initial.indeterminants**poly_initial.exponents, axis=-1)
 
 #### PCE #####
-# input sim data
+### input sim data
 samples_pce_x = [samples_x[0,:300], samples_x[1,:300], samples_x[2,:300], samples_x[3,:300]]
 samples_pce_mean_y = np.mean(samples_y_resized, axis=0)
 samples_pce_std_y = np.std(samples_y_resized, axis=0)
 
-# surrogate
+### surrogate
 surrogate_pce_mean = spce.standard_pce(dist_X, samples_pce_x, samples_pce_mean_y, q)
 surrogate_pce_std = spce.standard_pce(dist_X, samples_pce_x, samples_pce_std_y, q)
 ######################################################################
 
 error_loo = spce.loo_error(samples_y, surrogate_q0, input_x_start)
-print('error loo = ' ,error_loo)
 
-sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
-# sigma_range = (0.01 , 0.1)
+# sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
+sigma_range = (0.01 , 0.5)
+print('sigma range = ', sigma_range)
 sigma_noise_range = np.linspace(np.log(sigma_range[0]) , np.log(sigma_range[1]), 5)
 sigma_noise_sorted = sorted(np.exp(sigma_noise_range), reverse=True)
 
-# for sigma_noise_i in sigma_noise_sorted:
-#     print('sigma_i = ', sigma_noise_i)
-#     optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise_i, optimized_c, polynomials, input_x)
-#     print(optimized_c)
-#     print(message)
+for sigma_noise_i in sigma_noise_sorted:
+    print('sigma_i = ', sigma_noise_i)
+    optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise_i, optimized_c, polynomials, input_x)
+    print(optimized_c)
+    print(message)
+
+######### CV ####################################################################
 
 # sigma_noise = spce.compute_optimal_sigma(optimized_c, polynomials, sigma_range) # cross validation
 
 # optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
 
-# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/c_q075_p3_cv_standardized2.npy', optimized_c)      
-# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/sigma_q075_p3_cv_standardized2.npy', sigma_noise)
+# np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/c_q{q}_p{p}_Nq{N_q}_cv_standardized.npy', optimized_c)      
+# np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/sigma_q{q}_p{p}_Nq{N_q}_cv_standardized.npy', sigma_noise)
 
-# optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/good_solutions/c_q05_p5_cv_standardized.npy')
-# sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/good_solutions/sigma_q05_p5_cv_standardized.npy')
+# optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/good_solutions/very_good/c_q{q}_p{p}_Nq{N_q}_cv_standardized.npy')
+# sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/good_solutions/very_good/sigma_q{q}_p{p}_Nq{N_q}_cv_standardized.npy')
 
+######### MLE ####################################################################
 
-# #### MLE ###################################
-sigma_noise = sigma_noise_sorted[-1]
+# sigma_noise = sigma_noise_sorted[-1]
 
-sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-# spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-# spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-# spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-# spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-# spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-# spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-# spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+# for i in range(8):
+#     print('iteration = ', i)
+#     sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
+#     # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
+#     optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
 
 
-np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/c_q05_p5_mle_standardized2.npy', optimized_c)
-np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/sigma_q05_p5_mle_standardized2.npy', sigma_noise)
+# np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy', optimized_c)
+# np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy', sigma_noise)
 
-# optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/good_solutions/c_q075_p3_mle_standardized2.npy')
-# sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/good_solutions/sigma_q075_p3_mle_standardized2.npy')
+# optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/good_solutions/very_good/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy')
+# sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/good_solutions/very_good/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy')
 
-###########################
+##################################################################################
+
+sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/good_solutions/very_good/sigma_q0.75_p5_Nq10_mle_standardized_norm.npy')
+optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy', optimized_c)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy', sigma_noise)
+
 
 print('sigma = ', sigma_noise)
 print('c = ', optimized_c)
@@ -362,10 +351,14 @@ nrmse_spce = (np.sqrt(np.mean((mean_spce[:size_y_test] - mean_sim)**2))) / (np.m
 nrmse_pce = (np.sqrt(np.mean((pce_mean_dist[:size_y_test] - mean_sim)**2))) / (np.mean(mean_sim))
 print('spce nrmse = ', nrmse_spce)
 print('pce nrmse = ', nrmse_pce)
+print('spce nrmse max = ', np.max(np.abs(mean_spce[:size_y_test] - mean_sim)) / np.mean(mean_sim))
+print('pce nrmse max = ', np.max(np.abs(pce_mean_dist[:size_y_test] - mean_sim)) / np.mean(mean_sim))
+print('spce nrmse min = ', np.min(np.abs(mean_spce[:size_y_test] - mean_sim)) / np.mean(mean_sim))
+print('pce nrmse min = ', np.min(np.abs(pce_mean_dist[:size_y_test] - mean_sim)) / np.mean(mean_sim))
 
 index_input_x = 0
 sorted_indices = np.argsort(samples_x_test[index_input_x,:size_y_test])
-x_index_plot = sorted_indices[15]
+x_index_plot = sorted_indices[13]
 
 mean_spce_plot = mean_spce[:size_y_test]#[sorted_indices]
 mean_sim_plot = mean_sim#[sorted_indices]
@@ -420,6 +413,11 @@ p_value_spce_mean = np.mean(p_value_spce)
 test_statistic_pce_mean = np.mean(test_statistic_pce)
 p_value_pce_mean = np.mean(p_value_pce)
 
+# print('max ks test p value spce = ', np.max(p_value_spce))
+# print('max ks test p value pce = ', np.max(p_value_pce))
+# print('min ks test p value spce = ', np.min(p_value_spce))
+# print('min ks test p value pce = ', np.min(p_value_pce))
+
 print('spce p value mean = ', p_value_spce_mean)
 print('pce p value mean = ', p_value_pce_mean)  
 print('spce test statistic mean = ', test_statistic_spce_mean)
@@ -447,7 +445,7 @@ plt.errorbar(samples_plot, mean_spce_plot, yerr=std_spce_plot, fmt='o', capsize=
 plt.scatter(samples_plot, mean_sim_plot, label='mean simulation')
 plt.errorbar(samples_plot, mean_sim_plot, yerr=std_sim_plot, fmt='o', capsize=5, label='std simulation')
 # plt.fill_between(samples_plot, mean_sim_plot - std_sim_plot, mean_sim_plot + std_sim_plot, alpha=0.5)
-plt.xlabel('Windspeed [m/s]')
+plt.xlabel('Yaw Angle [°]') # Windspeed [m/s], Turbulence Intensity [-], Rho [kg/m3], Yaw Angle [°]
 plt.ylabel('Blade Load [kN-m]')
 plt.grid()
 # tikzplotlib.save(rf"tex_files\wind_data\predicted_mean_std.tex")
