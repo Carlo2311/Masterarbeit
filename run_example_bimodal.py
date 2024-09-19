@@ -38,7 +38,7 @@ for i in range(error_n.shape[0]):
             dist_Z = cp.Uniform(-1, 1)
             dist_joint = cp.J(dist_X, dist_Z)
             N_q = 10
-            q = 0.8
+            q = 1
 
             ############## SPCE #################################################################
 
@@ -69,60 +69,21 @@ for i in range(error_n.shape[0]):
             if message == 'Optimization terminated successfully.':
                 repeat = False  
 
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-        sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+        # ###### MLE ###################################
+        # sigma_noise = sigma_noise_sorted[-1]
 
+        for j in range(15):
+            print('iteration = ', j)
+            sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
+            # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
+            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
 
-        # optimized_c = np.load(fr'solutions_example_1/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy') 
-        # print('c = ', optimized_c)
-        # sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c)
+        ##### CV #####################################
 
         # sigma_noise = spce.compute_optimal_sigma(optimized_c, polynomials, sigma_range) # cross validation
-        # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_1/sigma_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_CV.npy', sigma_noise)
+        # optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
 
-        # optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
-        # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_1/c_normal_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy', optimized_c)
-        # optimized_c_new = np.load(fr'solutions_example_1/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}.npy') 
-        # sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c_new)
-        # optimized_c = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c)
-        # sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c)
-        # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c_new)
+        ###############################################
 
         # repeat = True  
         # while repeat:
@@ -130,16 +91,19 @@ for i in range(error_n.shape[0]):
         #     if message != 'NaN result encountered.':
         #         repeat = False  
 
-        # np.save(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_example_1/c_D2_{n_samples}_p{p}_nq{N_q}_sigma{sigma_noise}_CV.npy', optimized_c)
-        # print('last sigma = ', sigma_noise)
+        # np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_bimodal/c_test.npy', optimized_c)
+        # np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_bimodal/sigma_test.npy', sigma_noise)
+
+        # optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_bimodal/c_test.npy')
+        # sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_bimodal/sigma_test.npy')
 
         # sigma_noise = 0.6406371832484791
         ############# test surrogate ##########################################################
         dist_eps = cp.Normal(0, sigma_noise)
         n_x = 1000
         n_samples_test = 10000
-        samples_x_test = dist_X.sample(n_x, rule='H')
-        # samples_x_test = np.array([0.2, 0.5, 0.7, 0.9])
+        # samples_x_test = dist_X.sample(n_x, rule='H')
+        samples_x_test = np.array([0.2, 0.5, 0.7, 0.9])
         samples_z_test = dist_Z.sample(n_samples_test)
         samples_eps_test = dist_eps.sample(n_samples_test)
         input_x_test = [samples_x_test[:, np.newaxis]]
@@ -150,7 +114,7 @@ for i in range(error_n.shape[0]):
         samples_y_test = example.create_data_points(mean_1_test, mean_2_test, sigma_1_test, sigma_2_test, n_samples_test, samples_x_test)
 
         mean_prediction_gpr, std_prediction_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, mean_12_test, sigma_12_test)
-        spce.plot_distribution(dist_spce, y, pdf_test, samples_x_test, samples_y_test, mean_prediction_gpr, std_prediction_gpr)
+        spce.plot_distribution(dist_spce, y, pdf_test, samples_x_test, samples_y_test, mean_prediction_gpr, std_prediction_gpr, dist_gpr)
 
         error_n[i, n_i] = spce.compute_error(dist_spce, samples_y_test)
         error_gpr[i, n_i] = spce.compute_error(dist_gpr, samples_y_test)

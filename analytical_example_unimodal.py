@@ -24,13 +24,14 @@ class AnalyticalExample():
     
     def create_data_points(self, mean, sigma, samples_plot, samples_x, pdf):
 
-        samples_y = np.zeros((samples_x.shape[0], samples_plot))
+        # samples_y = np.zeros((samples_x.shape[0], samples_plot))
 
-        for i in range(samples_x.shape[0]):
-            dist_1 = cp.Normal(mean[i], sigma[i])
-            # dist_1 = cp.Uniform(min(pdf[i,:] + mean[i]),max(pdf[i,:] + mean[i])) # falsch
-            samples_1 = dist_1.sample(samples_plot)
-            samples_y[i, :] = samples_1[:]
+        samples_y = np.random.normal(mean[:, np.newaxis], sigma[:, np.newaxis], (samples_x.shape[0], samples_plot))
+
+        # for i in range(samples_x.shape[0]):
+        #     dist_1 = cp.Normal(mean[i], sigma[i])
+        #     samples_1 = dist_1.sample(samples_plot)
+        #     samples_y[i, :] = samples_1[:]
 
         return samples_y
 

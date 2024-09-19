@@ -16,27 +16,20 @@ class Gaussian_Process():
 
     def run(self, x_train, y_train):
 
-        self.X = self.samples_x.reshape(-1, 1)
-        self.y = self.mean
+        # self.X = self.samples_x.reshape(-1, 1) # if samples are 1D
+        self.X = self.samples_x.T
 
-        # rng = np.random.RandomState(1)
-        # training_indices = rng.choice(np.arange(self.y.size), size=10, replace=False)
-        # self.X_train, self.y_train = self.X[training_indices], self.y[training_indices]
-
-        # self.noise_std = np.mean(self.sigma)
-        # self.y_train_noisy = self.y_train + rng.normal(loc=0.0, scale=self.noise_std, size=self.y_train.shape)
-
-        ###
-        self.X_train = x_train.reshape(-1, 1)
+        # self.X_train = x_train.reshape(-1, 1) # if samples are 1D
+        self.X_train = x_train.T
         self.y_train_noisy = y_train
         self.noise_std = np.mean(self.sigma)
-        ###
 
-        kernel = RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2)) + WhiteKernel(noise_level=self.noise_std, noise_level_bounds=(1e-5, 1e1))
+
+        kernel = RBF(length_scale=1, length_scale_bounds=(1e-2, 1e2)) + WhiteKernel(noise_level=self.noise_std, noise_level_bounds=(1e-5, 1e1))
         gaussian_process = GaussianProcessRegressor(
             kernel=kernel, n_restarts_optimizer=9
         )
-        gaussian_process.fit(self.X_train, self.y_train_noisy)
+        gaussian_process.fit(self.X_train[:300,:], self.y_train_noisy[:300])
         self.mean_prediction, self.std_prediction = gaussian_process.predict(self.X, return_std=True)
 
         return self.mean_prediction, self.std_prediction

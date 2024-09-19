@@ -169,11 +169,12 @@ class SPCE():
         gpr_test = Gaussian_Process(samples_x_test, samples_y_test, mean_test, sigma_test)
         mean_prediction_gpr, std_prediction_gpr = gpr_test.run(self.samples_x, self.y_values)
         # gpr_test.plot_gpr()
-        samples_gpr_all = np.random.normal(mean_prediction_gpr[:, np.newaxis], std_prediction_gpr[:, np.newaxis], (samples_x_test.shape[0], 10000))
+        # samples_gpr_all = np.random.normal(mean_prediction_gpr[:, np.newaxis], std_prediction_gpr[:, np.newaxis], (samples_x_test.shape[0], 10000)) # 1 input
+        samples_gpr_all = np.random.normal(mean_prediction_gpr[:, np.newaxis], std_prediction_gpr[:, np.newaxis], (samples_x_test.shape[1], 10000)) # 4 inputs
 
         return mean_prediction_gpr, std_prediction_gpr, samples_gpr_all
 
-    def plot_distribution(self, dist_spce, y, pdf, samples_x, samples_y, mean_prediction_gpr, std_prediction_gpr): 
+    def plot_distribution(self, dist_spce, y, pdf, samples_x, samples_y, mean_prediction_gpr, std_prediction_gpr, dist_gpr): 
 
         samples_x_i = samples_x[:5]
         indices = [np.abs(samples_x - value).argmin() for value in samples_x_i]
@@ -185,11 +186,10 @@ class SPCE():
             dist_spce_pdf_values = kde(x_values_spce)
 
             ''' KDE for GPR '''
-            dist_gpr = cp.Normal(mean_prediction_gpr[x], std_prediction_gpr[x])
-            samples_gpr = dist_gpr.sample(size=samples_y.shape[1])
-            kde = gaussian_kde(samples_gpr)
-            x_values_gpr = np.linspace(min(samples_gpr), max(samples_gpr), 1000) 
+            kde = gaussian_kde(dist_gpr[x,:])
+            x_values_gpr = np.linspace(min(dist_gpr[x,:]), max(dist_gpr[x,:]), 1000) 
             dist_gpr_pdf_values = kde(x_values_gpr)
+
             
             bin_edges = np.arange(-4, 8, 0.2)
 
@@ -205,7 +205,54 @@ class SPCE():
             plt.xlim(-4, 8)
             plt.title(f'x = {sample}')
             plt.legend()  
-            # tikzplotlib.save(rf"tex_files\bimodal\spce_normal_{sample}.tex")  
+            # tikzplotlib.save(rf"tex_files\bimodal\spce_gpr_{sample}.tex")  
+
+        plt.show()   
+
+    def plot_distribution_2(self, dist_spce, y, pdf, samples_x, samples_y, mean_prediction_gpr, std_prediction_gpr, dist_gpr, dist_pce): 
+
+        samples_x_i = samples_x[:5]
+        indices = [np.abs(samples_x - value).argmin() for value in samples_x_i]
+            
+        for x, sample in enumerate(samples_x_i):
+            ''' KDE for SPCE '''
+            kde = gaussian_kde(dist_spce[x,:])
+            x_values_spce = np.linspace(min(dist_spce[x,:]), max(dist_spce[x,:]), 1000) 
+            dist_spce_pdf_values = kde(x_values_spce)
+
+            ''' KDE for GPR '''
+            kde = gaussian_kde(dist_gpr[x,:])
+            x_values_gpr = np.linspace(min(dist_gpr[x,:]), max(dist_gpr[x,:]), 1000) 
+            dist_gpr_pdf_values = kde(x_values_gpr)
+
+            ''' KDE for PCE '''
+            kde = gaussian_kde(dist_pce[x,:])
+            x_values_pce = np.linspace(min(dist_pce[x,:]), max(dist_pce[x,:]), 1000)
+            dist_pce_pdf_values = kde(x_values_pce)
+
+
+            # dist_gpr = cp.Normal(mean_prediction_gpr[x], std_prediction_gpr[x])
+            # samples_gpr = dist_gpr.sample(size=samples_y.shape[1])
+            # kde = gaussian_kde(samples_gpr)
+            # x_values_gpr = np.linspace(min(samples_gpr), max(samples_gpr), 1000) 
+            # dist_gpr_pdf_values = kde(x_values_gpr)
+            
+            bin_edges = np.arange(-4, 8, 0.2)
+
+            plt.figure()            
+            plt.plot(y, pdf[indices[x],:], label='reference')
+            plt.plot(x_values_spce, dist_spce_pdf_values, label='SPCE')
+            plt.plot(x_values_gpr, dist_gpr_pdf_values, label='GPR')
+            plt.plot(x_values_pce, dist_pce_pdf_values, label='PCE')
+            # plt.hist(samples_y_test[x,:], bins=bin_edges, density=True, alpha=0.5, label='distribution reference')
+            # plt.hist(dist_spce[x, :], bins=bin_edges, density=True, alpha=0.5, label='distribution SPCE')
+            # plt.hist(samples_gpr, bins=bin_edges, density=True, alpha=0.5, label='distribution GPR')
+            plt.xlabel('y')
+            plt.ylabel('pdf')
+            plt.xlim(-4, 8)
+            plt.title(f'x = {sample}')
+            plt.legend()  
+            # tikzplotlib.save(rf"tex_files\unimodal\spce_gpr_pce_{sample}.tex")  
 
         plt.show()   
 
