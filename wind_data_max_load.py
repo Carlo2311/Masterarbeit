@@ -24,7 +24,7 @@ seed2 = df['Seed 2'].to_numpy()
 
 
 # samples_total = [50,100,150,200,250,300]
-samples_total = [50,60,70,80,90]
+samples_total = [300]
 iteration = 1
 
 error_spce = np.zeros((iteration, len(samples_total)))
@@ -96,14 +96,14 @@ for iter in range(iteration):
         samples_x_all_physical = np.array([windspeed, turbulence_intensity, rho, yaw_angle])
         samples_x_all = rosenblatt_transformation(dist_standard, dist_X, samples_x_all_physical)
 
-        samples_x = samples_x_all[:,:9000]
-        samples_x_resized = np.reshape(samples_x, (4, 30, 300))
-        samples_x = samples_x_resized[:,:,:samples_tot]
-        reshape_vec = 30 * samples_tot
-        samples_x = np.reshape(samples_x, (4, reshape_vec))
+        # samples_x = samples_x_all[:,:9000]
+        # samples_x_resized = np.reshape(samples_x, (4, 30, 300))
+        # samples_x = samples_x_resized[:,:,:samples_tot]
+        # reshape_vec = 30 * samples_tot
+        # samples_x = np.reshape(samples_x, (4, reshape_vec))
 
-        samples_x_test = samples_x_all[:,9000:]
-        samples_x_test_resized = np.reshape(samples_x_test, (4, 30, 30))
+        # samples_x_test = samples_x_all[:,9000:]
+        # samples_x_test_resized = np.reshape(samples_x_test, (4, 30, 30))
 
 
         ######## output data simulation #############################################################
@@ -130,6 +130,23 @@ for iter in range(iteration):
         twh_ty_max = df_sorted['TwHtALyt_[m/s^]_max'].to_numpy()
         twh_tz_max = df_sorted['TwHtALzt_[m/s^]_max'].to_numpy()
 
+        max_index = np.argmax(root_myb_max)
+        root_myb_max = np.delete(root_myb_max, max_index)
+        replacement_value = root_myb_max[max_index-1]
+        root_myb_max = np.append(root_myb_max, replacement_value)
+        replacement_column_x = samples_x_all[:, max_index-1]
+        samples_x_all = np.delete(samples_x_all, max_index, axis=1)
+        samples_x_all = np.insert(samples_x_all, max_index, replacement_column_x, axis=1)
+
+        samples_x = samples_x_all[:,:9000]
+        samples_x_resized = np.reshape(samples_x, (4, 30, 300))
+        samples_x = samples_x_resized[:,:,:samples_tot]
+        reshape_vec = 30 * samples_tot
+        samples_x = np.reshape(samples_x, (4, reshape_vec))
+
+        samples_x_test = samples_x_all[:,9000:]
+        samples_x_test_resized = np.reshape(samples_x_test, (4, 30, 30))
+
         root_myb_mean_normalized = root_myb_mean / max(root_myb_mean)
         root_myb_max_normalized = root_myb_max / max(root_myb_max)
         twh_tx_mean_normalized = twh_tx_mean / max(twh_tx_mean) 
@@ -147,14 +164,14 @@ for iter in range(iteration):
         # samples_y_test_resized = np.reshape(samples_y_test, (30, 30))
 
         #### normalized
-        samples_y_all = root_myb_mean_normalized[:9000] 
+        samples_y_all = root_myb_max_normalized[:9000] 
         # div = int(samples_tot / 300)
         # samples_y_resized = np.reshape(samples_y, (div, 300))
         samples_y_resized = np.reshape(samples_y_all, (30, 300))
         samples_y_resized = samples_y_resized[:,:samples_tot]
         samples_y = samples_y_resized.reshape(reshape_vec)
 
-        samples_y_test = root_myb_mean_normalized[9000:]
+        samples_y_test = root_myb_max_normalized[9000:]
         samples_y_test_resized = np.reshape(samples_y_test, (30, 30))
 
         # samples_y = root_myb_mean_normalized[300:600] 
@@ -172,8 +189,31 @@ for iter in range(iteration):
         std_samples_y = np.std(samples_y_resized, axis=0)
         mean_samples_y_test = np.mean(samples_y_test_resized, axis=0)
         std_samples_y_test = np.std(samples_y_test_resized, axis=0)
+
         # plt.figure()
-        # # plt.scatter(samples_x[0,:], samples_y, s=1)
+        # plt.scatter(samples_x[0,:], samples_y)
+        # plt.xlabel('windspeed [m/s]')
+        # plt.ylabel('blade load [mm/s^2]')
+        # plt.grid()
+        # plt.figure()
+        # plt.scatter(samples_x[1,:], samples_y)
+        # plt.xlabel('turbulence intensity')
+        # plt.ylabel('blade load [mm/s^2]')
+        # plt.grid()
+        # plt.figure()
+        # plt.scatter(samples_x[2,:], samples_y)
+        # plt.xlabel('rho')
+        # plt.ylabel('blade load [mm/s^2]')
+        # plt.grid()
+        # plt.figure()
+        # plt.scatter(samples_x[3,:], samples_y)
+        # plt.xlabel('yaw angle')
+        # plt.ylabel('blade load [mm/s^2]')
+        # plt.grid()
+        # plt.show()
+
+        # plt.figure()
+        # # plt.scatter(samples_x[0,:], samples_y)
         # plt.errorbar(samples_x[0,:samples_tot], mean_samples_y, yerr=std_samples_y, fmt='o', capsize=5, color='g')
         # # plt.scatter(samples_x_test[0,:30], samples_y_test, s=1)
         # plt.errorbar(samples_x_test[0,:30], mean_samples_y_test, yerr=std_samples_y_test, fmt='o', capsize=5, color='r')
@@ -261,12 +301,12 @@ for iter in range(iteration):
         ############## SPCE #################################################################
 
         n_samples = samples_x.shape[1]
-        p = 5
+        p = 3
         # dist_Z = cp.Normal(0, 1)
         dist_Z = cp.Uniform(-1, 1)
         dist_joint = cp.J(dist_standard, dist_Z)
         N_q = 5 # 5 reicht
-        q = 0.5
+        q = 0.7
         print('q = ', q)
         spce = SPCE(n_samples, p, samples_y.T, samples_x, dist_joint, N_q, dist_Z, q)
 
@@ -292,9 +332,9 @@ for iter in range(iteration):
 
         error_loo = spce.loo_error(samples_y, surrogate_q0, input_x_start)
 
-        # sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
+        sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
         # print(sigma_range)
-        sigma_range = (0.01 , 0.5) 
+        # sigma_range = (0.001 , 0.05) 
         print('sigma range = ', sigma_range)
         sigma_noise_range = np.linspace(np.log(sigma_range[0]) , np.log(sigma_range[1]), 5)
         sigma_noise_sorted = sorted(np.exp(sigma_noise_range), reverse=True)
@@ -319,19 +359,19 @@ for iter in range(iteration):
 
         ######### MLE ####################################################################
 
-        # sigma_noise = sigma_noise_sorted[-1]
+        sigma_noise = sigma_noise_sorted[-1]
         
-        # for i in range(10):
-        #     print('iteration = ', i)
-        #     sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        #     # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        #     optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+        for i in range(10):
+            print('iteration = ', i)
+            sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
+            # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
+            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
 
-        sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/sigma_q0.9_p5_Nq5_mle_standardized_norm.npy')
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+        # sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/sigma_q0.9_p5_Nq5_mle_standardized_norm.npy')
+        # optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
 
-        # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', optimized_c)
-        # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', sigma_noise)
+        np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load_max/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', optimized_c)
+        np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load_max/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', sigma_noise)
 
         # optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy')
         # sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy')

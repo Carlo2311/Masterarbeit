@@ -29,7 +29,7 @@ class Gaussian_Process():
         gaussian_process = GaussianProcessRegressor(
             kernel=kernel, n_restarts_optimizer=9
         )
-        gaussian_process.fit(self.X_train[:300,:], self.y_train_noisy[:300])
+        gaussian_process.fit(self.X_train, self.y_train_noisy)
         self.mean_prediction, self.std_prediction = gaussian_process.predict(self.X, return_std=True)
 
         return self.mean_prediction, self.std_prediction

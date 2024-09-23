@@ -306,12 +306,11 @@ class SPCE():
 
     def compute_error(self, dist_spce, samples_y):
 
-        u = np.linspace(0, 1, dist_spce.shape[0])
+        u = np.linspace(0, 1, 1000)
         squared_diff = (np.quantile(dist_spce, u, axis=1) - np.quantile(samples_y, u, axis=1)) ** 2
-        d_ws_i = np.trapz(squared_diff, u, axis=1)
-        d_ws = np.sum(d_ws_i) / d_ws_i.shape[0]
+        d_ws = np.trapz(squared_diff, u, axis=0)
         variance = np.var(samples_y)
-        error_spce = d_ws / variance
+        error_spce = np.mean(d_ws) / variance
 
         return error_spce 
 
@@ -367,11 +366,8 @@ class SPCE():
     
     def standard_pce(self, dist_X, x, y, q):
         
-        poly_pce = cp.generate_expansion(self.p, dist_X, cross_truncation=q)
-        surrogate = cp.fit_regression(poly_pce, (*x,), y)
-
-        mean = cp.E(surrogate, dist_X) 
-        std = cp.Std(surrogate, dist_X)   
+        poly_pce = cp.generate_expansion(self.p, dist_X, cross_truncation=q) 
+        surrogate = cp.fit_regression(poly_pce, (*x,), y)  
         
         return surrogate
 

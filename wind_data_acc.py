@@ -24,7 +24,7 @@ seed2 = df['Seed 2'].to_numpy()
 
 
 # samples_total = [50,100,150,200,250,300]
-samples_total = [50,60,70,80,90]
+samples_total = [300]
 iteration = 1
 
 error_spce = np.zeros((iteration, len(samples_total)))
@@ -147,14 +147,14 @@ for iter in range(iteration):
         # samples_y_test_resized = np.reshape(samples_y_test, (30, 30))
 
         #### normalized
-        samples_y_all = root_myb_mean_normalized[:9000] 
+        samples_y_all = twh_tx_mean_normalized[:9000] 
         # div = int(samples_tot / 300)
         # samples_y_resized = np.reshape(samples_y, (div, 300))
         samples_y_resized = np.reshape(samples_y_all, (30, 300))
         samples_y_resized = samples_y_resized[:,:samples_tot]
         samples_y = samples_y_resized.reshape(reshape_vec)
 
-        samples_y_test = root_myb_mean_normalized[9000:]
+        samples_y_test = twh_tx_mean_normalized[9000:]
         samples_y_test_resized = np.reshape(samples_y_test, (30, 30))
 
         # samples_y = root_myb_mean_normalized[300:600] 
@@ -172,8 +172,9 @@ for iter in range(iteration):
         std_samples_y = np.std(samples_y_resized, axis=0)
         mean_samples_y_test = np.mean(samples_y_test_resized, axis=0)
         std_samples_y_test = np.std(samples_y_test_resized, axis=0)
+
         # plt.figure()
-        # # plt.scatter(samples_x[0,:], samples_y, s=1)
+        # # plt.scatter(samples_x[0,:], samples_y)
         # plt.errorbar(samples_x[0,:samples_tot], mean_samples_y, yerr=std_samples_y, fmt='o', capsize=5, color='g')
         # # plt.scatter(samples_x_test[0,:30], samples_y_test, s=1)
         # plt.errorbar(samples_x_test[0,:30], mean_samples_y_test, yerr=std_samples_y_test, fmt='o', capsize=5, color='r')
@@ -266,8 +267,8 @@ for iter in range(iteration):
         dist_Z = cp.Uniform(-1, 1)
         dist_joint = cp.J(dist_standard, dist_Z)
         N_q = 5 # 5 reicht
-        q = 0.5
-        print('q = ', q)
+        q = 0.8
+        
         spce = SPCE(n_samples, p, samples_y.T, samples_x, dist_joint, N_q, dist_Z, q)
 
         poly, z_j = spce.get_params()
@@ -292,9 +293,9 @@ for iter in range(iteration):
 
         error_loo = spce.loo_error(samples_y, surrogate_q0, input_x_start)
 
-        # sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
+        sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
         # print(sigma_range)
-        sigma_range = (0.01 , 0.5) 
+        # sigma_range = (0.001 , 0.05) 
         print('sigma range = ', sigma_range)
         sigma_noise_range = np.linspace(np.log(sigma_range[0]) , np.log(sigma_range[1]), 5)
         sigma_noise_sorted = sorted(np.exp(sigma_noise_range), reverse=True)
@@ -319,19 +320,19 @@ for iter in range(iteration):
 
         ######### MLE ####################################################################
 
-        # sigma_noise = sigma_noise_sorted[-1]
+        sigma_noise = sigma_noise_sorted[-1]
         
-        # for i in range(10):
-        #     print('iteration = ', i)
-        #     sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-        #     # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-        #     optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+        for i in range(10):
+            print('iteration = ', i)
+            sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
+            # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
+            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
 
-        sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/sigma_q0.9_p5_Nq5_mle_standardized_norm.npy')
-        optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+        # sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/sigma_q0.9_p5_Nq5_mle_standardized_norm.npy')
+        # optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
 
-        # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', optimized_c)
-        # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/test/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', sigma_noise)
+        np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/acceleration/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', optimized_c)
+        np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/acceleration/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', sigma_noise)
 
         # optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy')
         # sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy')
@@ -405,7 +406,8 @@ for iter in range(iteration):
         std_spce = np.std(dist_spce, axis=1)
 
         ####### test simulation data #############################################################
-        mean_sim = np.mean(samples_y_test_resized, axis=0)
+        mean_sim = np.abs(np.mean(samples_y_test_resized, axis=0))
+        print('mean sim = ', mean_sim)
         std_sim = np.std(samples_y_test_resized, axis=0)
 
         nrmse_spce[iter,s_i] = (np.sqrt(np.mean((mean_spce[:size_y_test] - mean_sim)**2))) / (np.mean(mean_sim))
