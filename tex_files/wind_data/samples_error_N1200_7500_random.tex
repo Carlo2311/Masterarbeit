@@ -1,0 +1,60 @@
+% This file was created with tikzplotlib v0.10.1.
+\begin{tikzpicture}
+
+\definecolor{darkgray176}{RGB}{176,176,176}
+\definecolor{darkorange25512714}{RGB}{255,127,14}
+\definecolor{steelblue31119180}{RGB}{31,119,180}
+
+\begin{axis}[
+log basis y={10},
+tick align=outside,
+tick pos=left,
+x grid style={darkgray176},
+xlabel={$N$},
+xmajorgrids,
+xmin=885, xmax=7815,
+xtick style={color=black},
+y grid style={darkgray176},
+ylabel={$\varepsilon$},
+ymajorgrids,
+ymin=0.00481022502048326, ymax=5.20637324021917,
+ymode=log,
+ytick style={color=black},
+ytick={0.0001,0.001,0.01,0.1,1,10,100},
+yticklabels={
+  $\mathdefault{10^{-4}}$,
+  $\mathdefault{10^{-3}}$,
+  $\mathdefault{10^{-2}}$,
+  $\mathdefault{10^{-1}}$,
+  $\mathdefault{10^{0}}$,
+  $\mathdefault{10^{1}}$,
+  $\mathdefault{10^{2}}$
+}
+]
+\addplot [semithick, steelblue31119180]
+table {%
+1200 0.192940981138668
+1500 0.0208038406004314
+1800 3.78973981318044
+2100 0.019341210958029
+2400 0.0238180766443247
+3000 0.0209478523259763
+4500 0.0197760168383964
+6000 0.0197005277006836
+7500 0.0200802155947727
+};
+\addplot [semithick, darkorange25512714]
+table {%
+1200 0.0088810235614209
+1500 0.0111088900286197
+1800 0.00660832354215351
+2100 0.00971101182176514
+2400 0.00769774797273712
+3000 0.0117750892037784
+4500 0.0088621516624142
+6000 0.00997849633242208
+7500 0.00844374490433248
+};
+\end{axis}
+
+\end{tikzpicture}

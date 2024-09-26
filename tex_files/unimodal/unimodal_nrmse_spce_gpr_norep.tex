@@ -1,0 +1,74 @@
+% This file was created with tikzplotlib v0.10.1.
+\begin{tikzpicture}
+
+\definecolor{darkgray176}{RGB}{176,176,176}
+\definecolor{darkorange25512714}{RGB}{255,127,14}
+\definecolor{forestgreen4416044}{RGB}{44,160,44}
+\definecolor{steelblue31119180}{RGB}{31,119,180}
+
+\begin{axis}[
+log basis y={10},
+tick align=outside,
+tick pos=left,
+x grid style={darkgray176},
+xlabel={replications},
+xmajorgrids,
+xmin=-64.5, xmax=1574.5,
+xtick style={color=black},
+y grid style={darkgray176},
+ylabel={nrmse},
+ymajorgrids,
+ymin=0.0215040948486236, ymax=0.741219741723773,
+ymode=log,
+ytick style={color=black},
+ytick={0.001,0.01,0.1,1,10},
+yticklabels={
+  $\mathdefault{10^{-3}}$,
+  $\mathdefault{10^{-2}}$,
+  $\mathdefault{10^{-1}}$,
+  $\mathdefault{10^{0}}$,
+  $\mathdefault{10^{1}}$
+}
+]
+\addplot [semithick, steelblue31119180]
+table {%
+10 0.618463628069678
+50 0.181452832216834
+100 0.111404013087945
+200 0.0618559955201725
+300 0.0586770442199889
+500 0.0428015736206181
+800 0.0301380073477429
+1000 0.0369883656574676
+1300 0.0315511472488452
+1500 0.0289645148273749
+};
+\addplot [semithick, darkorange25512714]
+table {%
+10 0.454432068977625
+50 0.123795723981825
+100 0.093549864590745
+200 0.060618926795534
+300 0.0540523522750258
+500 0.030565268203773
+800 0.032643501785553
+1000 0.0358711832089843
+1300 0.0263740105075752
+1500 0.0252583023934595
+};
+\addplot [semithick, forestgreen4416044]
+table {%
+10 0.631050312938992
+50 0.152735538292044
+100 0.0877057806864886
+200 0.0610593539627019
+300 0.0487688161933185
+500 0.0432080773660215
+800 0.0304532818613466
+1000 0.0369105653739301
+1300 0.0315813899787616
+1500 0.0292005415818398
+};
+\end{axis}
+
+\end{tikzpicture}
