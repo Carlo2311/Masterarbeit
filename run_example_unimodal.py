@@ -7,23 +7,25 @@ from spce import SPCE
 from gaussian_process import Gaussian_Process
 import time
 
-n_samples = 50 #[50,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500]
-replications = [8] #[ 1,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
-runs = 1
-error_n = np.zeros((runs, len(replications)))
-error_gpr = np.zeros((runs, len(replications)))
-error_pce =np.zeros((runs, len(replications)))
-nrmse_spce = np.zeros((runs, len(replications)))
-nrmse_gpr = np.zeros((runs, len(replications)))
-nrmse_pce = np.zeros((runs, len(replications)))
+# n_samples_all = [10,50,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500]
+n_samples_all = [10,50,100,200,300,500,800,1000,1300,1500]
+
+replications = 1 # [ 1,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
+runs = 5
+error_n = np.zeros((runs, len(n_samples_all)))
+error_gpr = np.zeros((runs, len(n_samples_all)))
+error_pce =np.zeros((runs, len(n_samples_all)))
+nrmse_spce = np.zeros((runs, len(n_samples_all)))
+nrmse_gpr = np.zeros((runs, len(n_samples_all)))
+nrmse_pce = np.zeros((runs, len(n_samples_all)))
 
 
 for r in range(runs):
     print('run = ', r)
-    # for n, n_samples in enumerate(n_samples_all):
-    for n, repli in enumerate(replications):
+    for n, n_samples in enumerate(n_samples_all):
+    # for n, repli in enumerate(replications):
         print('n_samples = ', n_samples)
-        samples_x_repeat = repli # 30
+        samples_x_repeat = replications # 30
         dist_X = cp.Uniform(0, 1)
         samples_x = dist_X.sample(size=n_samples, rule='H') 
         samples_x = np.repeat(samples_x, samples_x_repeat)
@@ -189,26 +191,26 @@ print('error pce = ', error_pce)
 # np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/error_gpr.npy', error_gpr)
 
 plt.figure('RMSE')
-plt.plot(replications, np.mean(nrmse_spce, axis=0), label='SPCE')
-plt.plot(replications, np.mean(nrmse_gpr, axis=0), label='GPR')
-plt.plot(replications, np.mean(nrmse_pce, axis=0), label='PCE')
+plt.plot(n_samples_all, np.mean(nrmse_spce, axis=0), label='SPCE')
+plt.plot(n_samples_all, np.mean(nrmse_gpr, axis=0), label='GPR')
+plt.plot(n_samples_all, np.mean(nrmse_pce, axis=0), label='PCE')
 plt.xlabel(f'replications')
 plt.ylabel('nrmse')
 plt.grid()
 # plt.legend()
 plt.yscale('log')
-# tikzplotlib.save(rf"tex_files\unimodal\unimodal_nrmse_spce_gpr_pce.tex")
+tikzplotlib.save(rf"tex_files\unimodal\unimodal_nrmse_spce_gpr_norep.tex")
 
 plt.figure('Error')
-plt.plot(replications, np.mean(error_n, axis=0), label='SPCE')
-plt.plot(replications, np.mean(error_gpr, axis=0), label='GPR')
-plt.plot(replications, np.mean(error_pce, axis=0), label='PCE')
+plt.plot(n_samples_all, np.mean(error_n, axis=0), label='SPCE')
+plt.plot(n_samples_all, np.mean(error_gpr, axis=0), label='GPR')
+plt.plot(n_samples_all, np.mean(error_pce, axis=0), label='PCE')
 plt.xlabel(f'replications')
 plt.ylabel('error')
 plt.grid()
 # plt.legend()
 plt.yscale('log')
-# tikzplotlib.save(rf"tex_files\unimodal\unimodal_error_spce_gpr_pce.tex")
+tikzplotlib.save(rf"tex_files\unimodal\unimodal_error_spce_gpr_norep.tex")
 
 plt.show()
 

@@ -7,9 +7,9 @@ from spce import SPCE
 from gaussian_process import Gaussian_Process
 import time
 
-n_samples = 50 #[50,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500]
-replications = [ 1,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
-runs = 7
+n_samples_all = [10,50,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500]
+replications = [1] # [ 1,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
+runs = 1
 error_n = np.zeros((runs, len(replications)))
 error_gpr = np.zeros((runs, len(replications)))
 error_pce = np.zeros((runs, len(replications)))
@@ -20,10 +20,10 @@ nrmse_pce = np.zeros((runs, len(replications)))
 
 for r in range(runs):
     print('run = ', r)
-    # for n, n_samples in enumerate(n_samples_all):
-    for n, repli in enumerate(replications):
-        print('repli = ', repli)
-        samples_x_repeat = repli # 30
+    for n, n_samples in enumerate(n_samples_all):
+    # for n, repli in enumerate(replications):
+        print('repli = ', replications)
+        samples_x_repeat = replications # 30
         dist_X = cp.Uniform(0, 1)
         samples_x = dist_X.sample(size=n_samples, rule='H') 
         samples_x = np.repeat(samples_x, samples_x_repeat)

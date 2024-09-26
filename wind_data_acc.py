@@ -173,6 +173,32 @@ for iter in range(iteration):
         mean_samples_y_test = np.mean(samples_y_test_resized, axis=0)
         std_samples_y_test = np.std(samples_y_test_resized, axis=0)
 
+        plt.figure()
+        plt.scatter(samples_x[0,:], samples_y)
+        plt.scatter(samples_x_test[0,:], samples_y_test)
+        plt.xlabel('windspeed [m/s]')
+        plt.ylabel('blade load [mm/s^2]')
+        plt.grid()
+        plt.figure()
+        plt.scatter(samples_x[1,:], samples_y)
+        plt.scatter(samples_x_test[1,:], samples_y_test)
+        plt.xlabel('turbulence intensity')
+        plt.ylabel('blade load [mm/s^2]')
+        plt.grid()
+        plt.figure()
+        plt.scatter(samples_x[2,:], samples_y)
+        plt.scatter(samples_x_test[2,:], samples_y_test)
+        plt.xlabel('rho')
+        plt.ylabel('blade load [mm/s^2]')
+        plt.grid()
+        plt.figure()
+        plt.scatter(samples_x[3,:], samples_y)
+        plt.scatter(samples_x_test[3,:], samples_y_test)
+        plt.xlabel('yaw angle')
+        plt.ylabel('blade load [mm/s^2]')
+        plt.grid()
+        plt.show()
+
         # plt.figure()
         # # plt.scatter(samples_x[0,:], samples_y)
         # plt.errorbar(samples_x[0,:samples_tot], mean_samples_y, yerr=std_samples_y, fmt='o', capsize=5, color='g')
@@ -262,7 +288,7 @@ for iter in range(iteration):
         ############## SPCE #################################################################
 
         n_samples = samples_x.shape[1]
-        p = 5
+        p = 3
         # dist_Z = cp.Normal(0, 1)
         dist_Z = cp.Uniform(-1, 1)
         dist_joint = cp.J(dist_standard, dist_Z)
@@ -300,11 +326,11 @@ for iter in range(iteration):
         sigma_noise_range = np.linspace(np.log(sigma_range[0]) , np.log(sigma_range[1]), 5)
         sigma_noise_sorted = sorted(np.exp(sigma_noise_range), reverse=True)
 
-        for sigma_noise_i in sigma_noise_sorted:
-            print('sigma_i = ', sigma_noise_i)
-            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise_i, optimized_c, polynomials, input_x)
-            print(optimized_c)
-            print(message)
+        # for sigma_noise_i in sigma_noise_sorted:
+        #     print('sigma_i = ', sigma_noise_i)
+        #     optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise_i, optimized_c, polynomials, input_x)
+        #     print(optimized_c)
+        #     print(message)
 
         ######### CV ####################################################################
 
@@ -320,22 +346,22 @@ for iter in range(iteration):
 
         ######### MLE ####################################################################
 
-        sigma_noise = sigma_noise_sorted[-1]
+        # sigma_noise = sigma_noise_sorted[-1]
         
-        for i in range(10):
-            print('iteration = ', i)
-            sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
-            # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+        # for i in range(10):
+        #     print('iteration = ', i)
+        #     sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
+        #     # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
+        #     optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+        
+        # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/acceleration/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', optimized_c)
+        # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/acceleration/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', sigma_noise)
 
         # sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/sigma_q0.9_p5_Nq5_mle_standardized_norm.npy')
         # optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
-
-        np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/acceleration/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', optimized_c)
-        np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/acceleration/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy', sigma_noise)
-
-        # optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy')
-        # sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_q/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm.npy')
+        
+        optimized_c = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/acceleration/c_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy')
+        sigma_noise = np.load(fr'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/acceleration/sigma_q{q}_p{p}_Nq{N_q}_mle_standardized_norm_300.npy')
 
         ##################################################################################
 
