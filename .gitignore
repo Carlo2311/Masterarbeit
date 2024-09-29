@@ -16,3 +16,4 @@ wind_data_acc.py
 wind_data_load_gpr.py
 wind_data_load_rep.py
 wind_data_max_load.py
+spce_wind.py
