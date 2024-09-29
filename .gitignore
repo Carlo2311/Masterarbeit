@@ -2,3 +2,17 @@
 simulation_data/
 
 tex_files/
+
+analytical_example_beta.py
+error.txt
+run_example_beta.py
+run_example_bimodal2.py
+spce2.py
+test_wind_gpr.py
+test_wind_rep.py
+test_wind.py
+test.py
+wind_data_acc.py
+wind_data_load_gpr.py
+wind_data_load_rep.py
+wind_data_max_load.py
