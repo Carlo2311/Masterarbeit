@@ -2,6 +2,9 @@
 simulation_data/
 
 tex_files/
+solutions_example_1/
+solutions_example_2/
+solutions_example_beta/
 
 analytical_example_beta.py
 error.txt
