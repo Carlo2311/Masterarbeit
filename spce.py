@@ -169,8 +169,8 @@ class SPCE():
         gpr_test = Gaussian_Process(samples_x_test, samples_y_test, mean_test, sigma_test)
         mean_prediction_gpr, std_prediction_gpr = gpr_test.run(self.samples_x, self.y_values)
         # gpr_test.plot_gpr()
-        samples_gpr_all = np.random.normal(mean_prediction_gpr[:, np.newaxis], std_prediction_gpr[:, np.newaxis], (samples_x_test.shape[0], 10000)) # 1 input
-        # samples_gpr_all = np.random.normal(mean_prediction_gpr[:, np.newaxis], std_prediction_gpr[:, np.newaxis], (samples_x_test.shape[1], 10000)) # 4 inputs
+        # samples_gpr_all = np.random.normal(mean_prediction_gpr[:, np.newaxis], std_prediction_gpr[:, np.newaxis], (samples_x_test.shape[0], 10000)) # 1 input
+        samples_gpr_all = np.random.normal(mean_prediction_gpr[:, np.newaxis], std_prediction_gpr[:, np.newaxis], (samples_x_test.shape[1], 10000)) # 4 inputs
 
         return mean_prediction_gpr, std_prediction_gpr, samples_gpr_all
 

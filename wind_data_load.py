@@ -20,10 +20,10 @@ seed1 = df['Seed 1'].to_numpy()
 seed2 = df['Seed 2'].to_numpy()
 
 # samples_total = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600, 3900, 4200, 4500, 4800, 5100, 5400, 5700, 6000, 6300, 6600, 6900, 7200, 7500, 7800, 8100, 8400, 8700, 9000]
-samples_total = [10,30,50,70,100,150,200,250,300]
+samples_total = [600]
 # rep = int(samples_total[0] / 300) # wenn über 300 samples
-rep = 1 # wenn unter 300 samples
-iteration = 20
+# rep = 1 # wenn unter 300 samples
+iteration = 1
 
 
 error_spce = np.zeros((iteration, len(samples_total)))
@@ -46,7 +46,10 @@ test_statistic_pce_mean = np.zeros((iteration, len(samples_total)))
 for iter in range(iteration):
     for s_i, samples_tot in enumerate(samples_total):
         print(s_i, samples_tot)
-        # rep = int(samples_tot / 300) # wenn über 300 samples
+        if samples_tot <=300: 
+            rep = 1
+        else:
+            rep = int(samples_tot / 300)
 
         dist_windspeed = cp.Beta(1.02, 3, 3, 25)
         dist_turbulence_intensity = cp.Uniform(min(turbulence_intensity), max(turbulence_intensity)) 
@@ -222,7 +225,7 @@ for iter in range(iteration):
         dist_Z = cp.Uniform(-1, 1)
         dist_joint = cp.J(dist_standard, dist_Z)
         N_q = 5 
-        q = 0.5
+        q = 1
        
         spce = SPCE(n_samples, p, samples_y.T, samples_x, dist_joint, N_q, dist_Z, q)
 
@@ -238,8 +241,8 @@ for iter in range(iteration):
         #### PCE #####
         ### input sim data
         # samples_pce_x = [samples_x[0,:samples_tot], samples_x[1,:samples_tot], samples_x[2,:samples_tot], samples_x[3,:samples_tot]] # all replications
-        samples_pce_x = [samples_x[0,:], samples_x[1,:], samples_x[2,:], samples_x[3,:]] # all samples
-        # samples_pce_x = [samples_x[0,:300], samples_x[1,:300], samples_x[2,:300], samples_x[3,:300]] # all samples
+        # samples_pce_x = [samples_x[0,:], samples_x[1,:], samples_x[2,:], samples_x[3,:]] # all samples
+        samples_pce_x = [samples_x[0,:300], samples_x[1,:300], samples_x[2,:300], samples_x[3,:300]] # all samples
         samples_pce_mean_y = np.mean(samples_y_resized, axis=0)
         samples_pce_std_y = np.std(samples_y_resized, axis=0)
 
@@ -279,7 +282,7 @@ for iter in range(iteration):
 
         sigma_noise = sigma_noise_sorted[-1]
         
-        for i in range(10):
+        for i in range(7):
             print('iteration = ', i)
             sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
             # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
@@ -311,9 +314,9 @@ for iter in range(iteration):
         dist_pce = np.random.normal(pce_mean_dist[:, np.newaxis], pce_std_dist[:, np.newaxis], (samples_x_test.shape[1], n_samples_test))
 
         ### GPR
-        # mean_prediction_gpr, std_prediction_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, samples_pce_mean_y, samples_pce_std_y)
-        # mean_gpr = np.mean(dist_gpr, axis=1)
-        # std_gpr = np.std(dist_gpr, axis=1)
+        mean_prediction_gpr, std_prediction_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, samples_pce_mean_y, samples_pce_std_y)
+        mean_gpr = np.mean(dist_gpr, axis=1)
+        std_gpr = np.std(dist_gpr, axis=1)
         #########
 
         size_y_test = samples_y_test_resized.shape[1]
@@ -409,19 +412,19 @@ test_statistic_pce_mean = np.mean(test_statistic_pce_mean, axis=0)
 #test_statistic_gpr_mean = np.mean(test_statistic_gpr_mean, axis=0)
 
 
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples_total_10_300_random_20it.npy', samples_total)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/error_spce_10_300_random_20it.npy', error_spce)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/error_pce_10_300_random_20it.npy', error_pce)
-#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/error_gpr.npy', error_gpr)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/nrmse_spce_10_300_random_20it.npy', nrmse_spce)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/nrmse_pce_10_300_random_20it.npy', nrmse_pce)
-#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/nrmse_gpr.npy', nrmse_gpr)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/p_value_spce_mean_10_300_random_20it.npy', p_value_spce_mean)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/p_value_pce_mean_10_300_random_20it.npy', p_value_pce_mean)
-#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/p_value_gpr_mean.npy', p_value_gpr_mean)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/test_statistic_spce_mean_10_300_random_20it.npy', test_statistic_spce_mean)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/test_statistic_pce_mean_10_300_random_20it.npy', test_statistic_pce_mean)
-#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/test_statistic_gpr_mean.npy', test_statistic_gpr_mean)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/samples_total_{samples_total[0]}_{samples_total[-1]}_q1.npy', samples_total)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/error_spce_{samples_total[0]}_{samples_total[-1]}_q1.npy', error_spce)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/error_pce_{samples_total[0]}_{samples_total[-1]}_q1.npy', error_pce)
+#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/error_gpr.npy', error_gpr)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_spce_{samples_total[0]}_{samples_total[-1]}_q1.npy', nrmse_spce)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_pce_{samples_total[0]}_{samples_total[-1]}_q1.npy', nrmse_pce)
+#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_gpr.npy', nrmse_gpr)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/p_value_spce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', p_value_spce_mean)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/p_value_pce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', p_value_pce_mean)
+#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/p_value_gpr_mean.npy', p_value_gpr_mean)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/test_statistic_spce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', test_statistic_spce_mean)
+np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/test_statistic_pce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', test_statistic_pce_mean)
+#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/test_statistic_gpr_mean.npy', test_statistic_gpr_mean)
 
 
 ###### plot ####################################################################

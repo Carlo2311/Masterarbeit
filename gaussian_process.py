@@ -16,11 +16,11 @@ class Gaussian_Process():
 
     def run(self, x_train, y_train):
 
-        self.X = self.samples_x.reshape(-1, 1) # if samples are 1D
-        # self.X = self.samples_x.T # if samples are 2D
+        # self.X = self.samples_x.reshape(-1, 1) # if samples are 1D
+        self.X = self.samples_x.T # if samples are 2D
 
-        self.X_train = x_train.reshape(-1, 1) # if samples are 1D
-        # self.X_train = x_train.T # if samples are 2D
+        # self.X_train = x_train.reshape(-1, 1) # if samples are 1D
+        self.X_train = x_train.T # if samples are 2D
         self.y_train_noisy = y_train
         self.noise_std = np.mean(self.sigma)
 
