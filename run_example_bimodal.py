@@ -114,7 +114,8 @@ for i in range(error_n.shape[0]):
         samples_y_test = example.create_data_points(mean_1_test, mean_2_test, sigma_1_test, sigma_2_test, n_samples_test, samples_x_test)
 
         mean_prediction_gpr, std_prediction_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, mean_12_test, sigma_12_test)
-        spce.plot_distribution(dist_spce, y, pdf_test, samples_x_test, samples_y_test, mean_prediction_gpr, std_prediction_gpr, dist_gpr)
+        spce.plot_distribution([dist_spce, dist_gpr], ['SPCE', 'GPR'], y, pdf_test, samples_x_test, samples_y_test)
+        # spce.plot_distribution(dist_spce, y, pdf_test, samples_x_test, samples_y_test, mean_prediction_gpr, std_prediction_gpr, dist_gpr)
 
         error_n[i, n_i] = spce.compute_error(dist_spce, samples_y_test)
         error_gpr[i, n_i] = spce.compute_error(dist_gpr, samples_y_test)

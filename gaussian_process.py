@@ -7,20 +7,21 @@ from scipy.stats import gaussian_kde
 
 class Gaussian_Process():
 
-    def __init__(self, samples_x, samples_y, mean, sigma):
+    def __init__(self, samples_x, mean, sigma):
         self.samples_x = samples_x
-        self.samples_y = samples_y
         self.mean = mean
         self.sigma = sigma
         pass
 
     def run(self, x_train, y_train):
 
-        # self.X = self.samples_x.reshape(-1, 1) # if samples are 1D
-        self.X = self.samples_x.T # if samples are 2D
-
-        # self.X_train = x_train.reshape(-1, 1) # if samples are 1D
-        self.X_train = x_train.T # if samples are 2D
+        if len(self.samples_x.shape) == 1:
+            self.X = self.samples_x.reshape(-1, 1)
+            self.X_train = x_train.reshape(-1, 1)
+        else:
+            self.X = self.samples_x.T
+            self.X_train = x_train.T
+        
         self.y_train_noisy = y_train
         self.noise_std = np.mean(self.sigma)
 
@@ -34,34 +35,4 @@ class Gaussian_Process():
 
         return self.mean_prediction, self.std_prediction
 
-    def plot_gpr(self): 
-
-        i = np.argsort(self.X.reshape(-1))
-
-        plt.figure()
-        plt.plot(self.X[i], self.y[i], label="reference", linestyle="dotted")
-        plt.errorbar(
-            self.X_train,
-            self.y_train_noisy,
-            self.noise_std,
-            linestyle="None",
-            color="tab:blue",
-            marker=".",
-            markersize=10,
-            label="Observations",
-        )
-        plt.plot(self.X[i], self.mean_prediction[i], label="Mean prediction")
-        plt.fill_between(
-            self.X[i].ravel(),
-            self.mean_prediction[i] - 1.96 * self.std_prediction[i],
-            self.mean_prediction[i] + 1.96 * self.std_prediction[i],
-            color="tab:orange",
-            alpha=0.5,
-            label=r"95% confidence interval",
-        )
-        plt.legend()
-        plt.xlabel("$x$")
-        plt.ylabel("$f(x)$")
-        _ = plt.title("GPR")
-        plt.show()
-
+    

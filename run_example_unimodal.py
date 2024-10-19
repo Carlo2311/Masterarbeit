@@ -7,14 +7,15 @@ from spce import SPCE
 from gaussian_process import Gaussian_Process
 import time
 
-# n_samples_all = [10,50,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500]
-n_samples_all = [10,50,100,200,300,500,800,1000,1300,1500]
+# n_samples_all = [100,300,500,600,800,900,1200,1300,1500]
+n_samples_all = [1500]
 
-replications = 1 # [ 1,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
-runs = 5
-error_n = np.zeros((runs, len(n_samples_all)))
+replications = 30 # [ 1,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]
+runs = 7
+
+error_spce = np.zeros((runs, len(n_samples_all)))
 error_gpr = np.zeros((runs, len(n_samples_all)))
-error_pce =np.zeros((runs, len(n_samples_all)))
+error_pce = np.zeros((runs, len(n_samples_all)))
 nrmse_spce = np.zeros((runs, len(n_samples_all)))
 nrmse_gpr = np.zeros((runs, len(n_samples_all)))
 nrmse_pce = np.zeros((runs, len(n_samples_all)))
@@ -24,10 +25,11 @@ for r in range(runs):
     print('run = ', r)
     for n, n_samples in enumerate(n_samples_all):
     # for n, repli in enumerate(replications):
+        n_samples = int(n_samples / replications)
         print('n_samples = ', n_samples)
         samples_x_repeat = replications # 30
         dist_X = cp.Uniform(0, 1)
-        samples_x = dist_X.sample(size=n_samples, rule='H') 
+        samples_x = dist_X.sample(size=n_samples) 
         samples_x = np.repeat(samples_x, samples_x_repeat)
         samples_x_i = np.array([0.1, 0.35, 0.6, 0.9])
         indices = [np.abs(samples_x - value).argmin() for value in samples_x_i]
@@ -47,15 +49,14 @@ for r in range(runs):
 
         ########################################################################################################################
 
-
         ### SPCE
         p = 5
         sigma_noise = 0.7
         # dist_Z = cp.Normal(0, 1)
         dist_Z = cp.Uniform(-1, 1)
         dist_joint = cp.J(dist_X, dist_Z)
-        N_q = 10
-        q = 0.8
+        N_q = 5
+        q = 0.5
 
         spce = SPCE(n_samples, p, samples_y.T, samples_x, dist_joint, N_q, dist_Z, q)
 
@@ -81,7 +82,7 @@ for r in range(runs):
         polynomials = cp.prod(poly_initial.indeterminants**poly_initial.exponents, axis=-1)
 
         error_loo = spce.loo_error(mean, surrogate_q0, input_x_start)
-        print('error_loo = ', error_loo)
+        # print('error_loo = ', error_loo)
 
         sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
         sigma_noise_range = np.linspace(0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo), 4)
@@ -95,13 +96,15 @@ for r in range(runs):
 
 
         # ###### MLE ###################################
-        # sigma_noise = sigma_noise_sorted[-1]
+        sigma_noise = sigma_noise_sorted[-1]
 
         for i in range(10):
             print('iteration = ', i)
             sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
             # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
             optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+
+        # print('c = ', optimized_c)
 
         # initial_sigma_noise = sigma_noise_sorted[-1]
         # sigma_noise = []
@@ -155,63 +158,75 @@ for r in range(runs):
         pdf_test, mean_test, sigma_test = example.calculate_pdf(samples_x_test)
         samples_y_test = example.create_data_points(mean_test, sigma_test, n_samples_test, samples_x_test, pdf_test)
 
-        mean_prediction_gpr, std_prediction_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, mean, sigma)
+        # mean_prediction_gpr, std_prediction_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, mean, sigma)
         # spce.plot_distribution_2(dist_spce, y, pdf_test, samples_x_test, samples_y_test, mean_prediction_gpr, std_prediction_gpr, dist_gpr, dist_pce)
         # spce.plot_distribution(dist_spce, y, pdf_test, samples_x_test, samples_y_test, mean_prediction_gpr, std_prediction_gpr, dist_gpr) # without PCE
 
 
-        error_n[r,n] = spce.compute_error(dist_spce, samples_y_test)
-        error_gpr[r,n] = spce.compute_error(dist_gpr, samples_y_test)
+        error_spce[r,n] = spce.compute_error(dist_spce, samples_y_test)
+        # error_gpr[r,n] = spce.compute_error(dist_gpr, samples_y_test)
         error_pce[r,n] = spce.compute_error(dist_pce, samples_y_test)
 
         samples_y_mean = np.mean(samples_y_test, axis=1)
         mean_spce = np.mean(dist_spce, axis=1)
         mean_pce = np.mean(dist_pce, axis=1)
-        mean_gpr = np.mean(dist_gpr, axis=1)
+        # mean_gpr = np.mean(dist_gpr, axis=1)
 
         nrmse_spce[r,n] = np.sqrt(np.mean((mean_spce - samples_y_mean)**2)) / np.mean(samples_y_mean)
         nrmse_pce[r,n] = np.sqrt(np.mean((mean_pce - samples_y_mean)**2)) / np.mean(samples_y_mean)
-        nrmse_gpr[r,n] = np.sqrt(np.mean((mean_gpr - samples_y_mean)**2)) / np.mean(samples_y_mean)
-        print('nrmse spce i = ', nrmse_spce[r,n])
-        print('nrmse gpr i = ', nrmse_gpr[r,n])
+        nrmse_pce_sdv = np.sqrt(np.mean((mean_pce - samples_y_mean)**2)) / np.std(samples_y_mean)
+        # nrmse_gpr[r,n] = np.sqrt(np.mean((mean_gpr - samples_y_mean)**2)) / np.mean(samples_y_mean)
 
-print('nrmse spce = ', nrmse_spce)
-print('nrmse gpr = ', nrmse_gpr)
-print('nrmse pce = ', nrmse_pce)
+        print('error spce = ', error_spce)
+        print('error pce = ', error_pce)
+        # print('error gpr = ', error_gpr)
+        print('nrmse spce = ', nrmse_spce)
+        print('nrmse pce = ', nrmse_pce)
+        # print('nrmse gpr = ', nrmse_gpr)
 
 print('nrmse mean spce = ', np.mean(nrmse_spce, axis=0))
-print('nrmse mean gpr = ', np.mean(nrmse_gpr, axis=0))
+# print('nrmse mean gpr = ', np.mean(nrmse_gpr, axis=0))
 print('nrmse mean pce = ', np.mean(nrmse_pce, axis=0))
 
-print('error spce = ', error_n)
-print('error gpr = ', error_gpr)
+print('error spce = ', error_spce)
+print('error mean spce = ', np.mean(error_spce, axis=0))
+# print('error gpr = ', error_gpr)
 print('error pce = ', error_pce)
+print('error mean pce = ', np.mean(error_pce, axis=0))
 
-# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/error_spce.npy', error_n)
-# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/error_gpr.npy', error_gpr)
+# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/convergence_samples/error_spce_1rep.npy', error_spce)
+# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/convergence_samples/nrmse_spce_1rep.npy', nrmse_spce)
+# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/convergence_samples/error_gpr_1rep.npy', error_gpr)
+# np.save('C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/convergence_samples/nrmse_gpr_1rep.npy', nrmse_gpr)
+# np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/convergence_samples/error_pce_{replications}rep.npy', error_pce)
+# np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_unimodal/convergence_samples/nrmse_pce_{replications}rep.npy', nrmse_pce)
 
 plt.figure('RMSE')
 plt.plot(n_samples_all, np.mean(nrmse_spce, axis=0), label='SPCE')
-plt.plot(n_samples_all, np.mean(nrmse_gpr, axis=0), label='GPR')
+# plt.plot(n_samples_all, np.mean(nrmse_gpr, axis=0), label='GPR')
 plt.plot(n_samples_all, np.mean(nrmse_pce, axis=0), label='PCE')
 plt.xlabel(f'replications')
 plt.ylabel('nrmse')
 plt.grid()
 # plt.legend()
 plt.yscale('log')
-tikzplotlib.save(rf"tex_files\unimodal\unimodal_nrmse_spce_gpr_norep.tex")
+# tikzplotlib.save(rf"tex_files\unimodal\convergence_samples\unimodal_pce_nrmse_{replications}.tex")
 
 plt.figure('Error')
-plt.plot(n_samples_all, np.mean(error_n, axis=0), label='SPCE')
-plt.plot(n_samples_all, np.mean(error_gpr, axis=0), label='GPR')
+plt.plot(n_samples_all, np.mean(error_spce, axis=0), label='SPCE')
+# plt.plot(n_samples_all, np.mean(error_gpr, axis=0), label='GPR')
 plt.plot(n_samples_all, np.mean(error_pce, axis=0), label='PCE')
 plt.xlabel(f'replications')
 plt.ylabel('error')
 plt.grid()
 # plt.legend()
 plt.yscale('log')
-tikzplotlib.save(rf"tex_files\unimodal\unimodal_error_spce_gpr_norep.tex")
+# tikzplotlib.save(rf"tex_files\unimodal\convergence_samples\unimodal_pce_error_{replications}.tex")
 
 plt.show()
 
-
+# Z uniform
+# nrmse mean spce =  [0.03655814]
+# nrmse mean pce =  [0.03720043]
+# error mean spce =  [0.00162805]
+# error mean pce =  [0.00219757]

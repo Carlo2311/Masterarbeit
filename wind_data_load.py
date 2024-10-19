@@ -20,7 +20,7 @@ seed1 = df['Seed 1'].to_numpy()
 seed2 = df['Seed 2'].to_numpy()
 
 # samples_total = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600, 3900, 4200, 4500, 4800, 5100, 5400, 5700, 6000, 6300, 6600, 6900, 7200, 7500, 7800, 8100, 8400, 8700, 9000]
-samples_total = [600]
+samples_total = [9000,10,30,50,70,100,150,200,250,300,600,900]
 # rep = int(samples_total[0] / 300) # wenn über 300 samples
 # rep = 1 # wenn unter 300 samples
 iteration = 1
@@ -32,9 +32,10 @@ error_pce = np.zeros((iteration, len(samples_total)))
 nrmse_spce = np.zeros((iteration, len(samples_total)))
 nrmse_gpr = np.zeros((iteration, len(samples_total)))
 nrmse_pce = np.zeros((iteration, len(samples_total)))
-rmse_spce = np.zeros((iteration, len(samples_total)))
-rmse_gpr = np.zeros((iteration, len(samples_total)))
-rmse_pce = np.zeros((iteration, len(samples_total)))
+nrmse_spce_std = np.zeros((iteration, len(samples_total)))
+nrmse_pce_std = np.zeros((iteration, len(samples_total)))
+nrmse_spce_pred = np.zeros((iteration, len(samples_total)))
+nrmse_pce_pred = np.zeros((iteration, len(samples_total)))
 p_value_spce_mean = np.zeros((iteration, len(samples_total)))
 p_value_gpr_mean = np.zeros((iteration, len(samples_total)))
 p_value_pce_mean = np.zeros((iteration, len(samples_total)))
@@ -73,8 +74,8 @@ for iter in range(iteration):
         samples_x_resized = np.reshape(samples_x, (4, 30, 300))
 
         ###
-        index_samples = np.random.randint(300, size=int(samples_tot/rep))
-        index_rep = np.random.randint(30, size=rep)
+        index_samples = np.random.choice(300, size=int(samples_tot/rep), replace=False)
+        index_rep = np.random.choice(30, size=rep, replace=False)
         samples_x = samples_x_resized[:,index_rep,:]
         samples_x = samples_x[:,:,index_samples]
 
@@ -117,6 +118,7 @@ for iter in range(iteration):
         twh_tz_max = df_sorted['TwHtALzt_[m/s^]_max'].to_numpy()
 
         root_myb_mean_normalized = root_myb_mean / max(root_myb_mean)
+        root_myb_sdv_normalized = root_myb_sdv / max(root_myb_mean)
         root_myb_max_normalized = root_myb_max / max(root_myb_max)
         twh_tx_mean_normalized = twh_tx_mean / max(twh_tx_mean) 
         twh_ty_mean_normalized = twh_ty_mean / max(twh_ty_mean) 
@@ -126,7 +128,7 @@ for iter in range(iteration):
         twh_tz_sdv_normalized = twh_tz_sdv / max(twh_tz_sdv) 
 
         ###standard
-        # samples_y = root_myb_mean[:9000]
+        # samples_y_all = root_myb_mean[:9000]
         # samples_y_resized = np.reshape(samples_y, (30, 300))
 
         # samples_y_test = root_myb_mean[9000:]
@@ -156,31 +158,31 @@ for iter in range(iteration):
         mean_samples_y_test = np.mean(samples_y_test_resized, axis=0)
         std_samples_y_test = np.std(samples_y_test_resized, axis=0)
 
-        # plt.figure()
-        # plt.scatter(samples_x[0,:], samples_y)
-        # plt.scatter(samples_x_test[0,:], samples_y_test)
-        # plt.xlabel('windspeed [m/s]')
-        # plt.ylabel('blade load [mm/s^2]')
-        # plt.grid()
-        # plt.figure()
-        # plt.scatter(samples_x[1,:], samples_y)
-        # plt.scatter(samples_x_test[1,:], samples_y_test)
-        # plt.xlabel('turbulence intensity')
-        # plt.ylabel('blade load [mm/s^2]')
-        # plt.grid()
-        # plt.figure()
-        # plt.scatter(samples_x[2,:], samples_y)
-        # plt.scatter(samples_x_test[2,:], samples_y_test)
-        # plt.xlabel('rho')
-        # plt.ylabel('blade load [mm/s^2]')
-        # plt.grid()
-        # plt.figure()
-        # plt.scatter(samples_x[3,:], samples_y)
-        # plt.scatter(samples_x_test[3,:], samples_y_test)
-        # plt.xlabel('yaw angle')
-        # plt.ylabel('blade load [mm/s^2]')
-        # plt.grid()
-        # plt.show()
+        plt.figure()
+        plt.scatter(samples_x[0,:], samples_y)
+        plt.scatter(samples_x_test[0,:], samples_y_test)
+        plt.xlabel('windspeed [m/s]')
+        plt.ylabel('blade load [mm/s^2]')
+        plt.grid()
+        plt.figure()
+        plt.scatter(samples_x[1,:], samples_y)
+        plt.scatter(samples_x_test[1,:], samples_y_test)
+        plt.xlabel('turbulence intensity')
+        plt.ylabel('blade load [mm/s^2]')
+        plt.grid()
+        plt.figure()
+        plt.scatter(samples_x[2,:], samples_y)
+        plt.scatter(samples_x_test[2,:], samples_y_test)
+        plt.xlabel('rho')
+        plt.ylabel('blade load [mm/s^2]')
+        plt.grid()
+        plt.figure()
+        plt.scatter(samples_x[3,:], samples_y)
+        plt.scatter(samples_x_test[3,:], samples_y_test)
+        plt.xlabel('yaw angle')
+        plt.ylabel('blade load [mm/s^2]')
+        plt.grid()
+        plt.show()
 
         # plt.figure()
         # # plt.scatter(samples_x[0,:], samples_y, s=1)
@@ -225,7 +227,7 @@ for iter in range(iteration):
         dist_Z = cp.Uniform(-1, 1)
         dist_joint = cp.J(dist_standard, dist_Z)
         N_q = 5 
-        q = 1
+        q = 0.5
        
         spce = SPCE(n_samples, p, samples_y.T, samples_x, dist_joint, N_q, dist_Z, q)
 
@@ -253,9 +255,9 @@ for iter in range(iteration):
 
         error_loo = spce.loo_error(samples_y, surrogate_q0, input_x_start)
 
-        # sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
+        sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
         # print(sigma_range)
-        sigma_range = (0.01 , 0.5) 
+        # sigma_range = (0.005 , 0.5) 
         print('sigma range = ', sigma_range)
         sigma_noise_range = np.linspace(np.log(sigma_range[0]) , np.log(sigma_range[1]), 5)
         sigma_noise_sorted = sorted(np.exp(sigma_noise_range), reverse=True)
@@ -314,9 +316,7 @@ for iter in range(iteration):
         dist_pce = np.random.normal(pce_mean_dist[:, np.newaxis], pce_std_dist[:, np.newaxis], (samples_x_test.shape[1], n_samples_test))
 
         ### GPR
-        mean_prediction_gpr, std_prediction_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, samples_pce_mean_y, samples_pce_std_y)
-        mean_gpr = np.mean(dist_gpr, axis=1)
-        std_gpr = np.std(dist_gpr, axis=1)
+        # mean_gpr, std_gpr, dist_gpr = spce.generate_dist_gpr(samples_x_test, samples_y_test, samples_pce_mean_y, samples_pce_std_y)
         #########
 
         size_y_test = samples_y_test_resized.shape[1]
@@ -342,9 +342,17 @@ for iter in range(iteration):
         # print('pce rmse = ', rmse_pce)
         # print('gpr nrmse = ', nrmse_gpr)
         nrmse_spce[iter,s_i] = (np.sqrt(np.mean((mean_spce[:size_y_test] - mean_sim)**2))) / (np.mean(mean_sim))
+        nrmse_spce_std[iter,s_i] = np.sqrt(np.mean((std_spce[:size_y_test] - std_sim)**2)) / (np.mean(std_sim))
         nrmse_pce[iter,s_i] = (np.sqrt(np.mean((pce_mean_dist[:size_y_test] - mean_sim)**2))) / (np.mean(mean_sim))
+        nrmse_pce_std[iter,s_i] = np.sqrt(np.mean((pce_std_dist[:size_y_test] - std_sim)**2)) / (np.mean(std_sim))
+        nrmse_spce_pred[iter,s_i] = np.sqrt(np.mean((std_spce[:size_y_test] - root_myb_sdv_normalized[9000:9030])**2)) / (np.mean(root_myb_sdv_normalized[9000:9030]))
+        nrmse_pce_pred[iter,s_i] = np.sqrt(np.mean((pce_std_dist[:size_y_test] - root_myb_sdv_normalized[9000:9030])**2)) / (np.mean(root_myb_sdv_normalized[9000:9030]))
         print('spce nrmse = ', nrmse_spce)
         print('pce nrmse = ', nrmse_pce)
+        print('spce nrmse std = ', nrmse_spce_std)
+        print('pce nrmse std = ', nrmse_pce_std)
+        print('spce nrmse pred = ', nrmse_spce_pred)
+        print('pce nrmse pred = ', nrmse_pce_pred)
 
 
         index_input_x = 0
@@ -403,6 +411,10 @@ error_pce = np.mean(error_pce, axis=0)
 #error_gpr = np.mean(error_gpr, axis=0)
 nrmse_spce = np.mean(nrmse_spce, axis=0)
 nrmse_pce = np.mean(nrmse_pce, axis=0)
+nrmse_spce_std = np.mean(nrmse_spce_std, axis=0)
+nrmse_pce_std = np.mean(nrmse_pce_std, axis=0)
+nrmse_spce_pred = np.mean(nrmse_spce_pred, axis=0)
+nrmse_pce_pred = np.mean(nrmse_pce_pred, axis=0)
 #nrmse_gpr = np.mean(nrmse_gpr, axis=0)
 p_value_spce_mean = np.mean(p_value_spce_mean, axis=0)
 p_value_pce_mean = np.mean(p_value_pce_mean, axis=0)
@@ -412,22 +424,34 @@ test_statistic_pce_mean = np.mean(test_statistic_pce_mean, axis=0)
 #test_statistic_gpr_mean = np.mean(test_statistic_gpr_mean, axis=0)
 
 
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/samples_total_{samples_total[0]}_{samples_total[-1]}_q1.npy', samples_total)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/error_spce_{samples_total[0]}_{samples_total[-1]}_q1.npy', error_spce)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/error_pce_{samples_total[0]}_{samples_total[-1]}_q1.npy', error_pce)
-#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/error_gpr.npy', error_gpr)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_spce_{samples_total[0]}_{samples_total[-1]}_q1.npy', nrmse_spce)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_pce_{samples_total[0]}_{samples_total[-1]}_q1.npy', nrmse_pce)
-#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_gpr.npy', nrmse_gpr)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/p_value_spce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', p_value_spce_mean)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/p_value_pce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', p_value_pce_mean)
-#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/p_value_gpr_mean.npy', p_value_gpr_mean)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/test_statistic_spce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', test_statistic_spce_mean)
-np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/test_statistic_pce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', test_statistic_pce_mean)
-#np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/test_statistic_gpr_mean.npy', test_statistic_gpr_mean)
+# np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/samples_total_{samples_total[0]}_{samples_total[-1]}.npy', samples_total)
+# # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/error_spce_{samples_total[0]}_{samples_total[-1]}_q1.npy', error_spce)
+# # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/error_pce_{samples_total[0]}_{samples_total[-1]}_q1.npy', error_pce)
+# #np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/error_gpr.npy', error_gpr)
+# # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_spce_{samples_total[0]}_{samples_total[-1]}.npy', nrmse_spce)
+# # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_pce_{samples_total[0]}_{samples_total[-1]}.npy', nrmse_pce)
+# np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_std_spce_{samples_total[0]}_{samples_total[-1]}.npy', nrmse_spce_std)
+# np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_std_pce_{samples_total[0]}_{samples_total[-1]}.npy', nrmse_pce_std)
+# #np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/nrmse_gpr.npy', nrmse_gpr)
+# # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/p_value_spce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', p_value_spce_mean)
+# # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/p_value_pce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', p_value_pce_mean)
+# #np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/p_value_gpr_mean.npy', p_value_gpr_mean)
+# # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/test_statistic_spce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', test_statistic_spce_mean)
+# # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/test_statistic_pce_mean_{samples_total[0]}_{samples_total[-1]}_q1.npy', test_statistic_pce_mean)
+# #np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_samples/samples/test_statistic_gpr_mean.npy', test_statistic_gpr_mean)
 
 
 ###### plot ####################################################################
+
+plt.figure() 
+plt.plot(samples_total, nrmse_spce_pred, label='SPCE')
+plt.plot(samples_total, nrmse_pce_pred, label='PCE')
+plt.xlabel(r'$N$')
+plt.ylabel('nRMSE std')
+plt.grid()
+plt.yscale('log')
+tikzplotlib.save(rf"tex_files\wind_data\samples\sdv_nrmse_sdv_test{samples_total[0]}_{samples_total[-1]}.tex")
+plt.show()
 
 print('x = ', samples_x_test[index_input_x,:size_y_test][x_index_plot])
 
@@ -473,4 +497,3 @@ ax5.set_xlabel('blade load')
 ax5.set_ylabel('ECDF')
 
 plt.show()
-

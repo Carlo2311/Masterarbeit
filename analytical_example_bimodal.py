@@ -12,11 +12,16 @@ class AnalyticalExample():
 
     def calculate_pdf(self, samples_x):
         samples_x_np = np.asarray(samples_x)[:, np.newaxis]
+
         component_1 = 1.25 * self.y - (5 * np.sin(np.pi * samples_x_np) ** 2 + 5 * samples_x_np - 2.5)
         component_2 = 1.25 * self.y - (5 * np.sin(np.pi * samples_x_np) ** 2 - 5 * samples_x_np + 2.5)
 
         pdf_values_1 = self.normal_distribution.pdf(component_1)
         pdf_values_2 = self.normal_distribution.pdf(component_2)
+
+        mean1 = 0.8 * (5 * np.sin(np.pi * samples_x_np) ** 2 + 5 * samples_x_np - 2.5)
+        sigma1 = 0.8
+        pdf_values_12 = 0.4 * ( 1 / (sigma1 * np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((self.y - mean1) / sigma1) ** 2))
 
         pdf = 0.5 * pdf_values_1 + 0.75 * pdf_values_2
 

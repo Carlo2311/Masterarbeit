@@ -20,3 +20,7 @@ wind_data_load_gpr.py
 wind_data_load_rep.py
 wind_data_max_load.py
 spce_wind.py
+wind_data_load_pce.py
+test_wind_pce.py
+test_unimodal.py
+wind_data_load_pce_rep.py
