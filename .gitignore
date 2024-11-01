@@ -5,6 +5,9 @@ tex_files/
 solutions_example_1/
 solutions_example_2/
 solutions_example_beta/
+solutions_bimodal/
+solutions_unimodal/
+solutions_wind/
 
 analytical_example_beta.py
 error.txt
