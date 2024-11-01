@@ -27,3 +27,6 @@ wind_data_load_pce.py
 test_wind_pce.py
 test_unimodal.py
 wind_data_load_pce_rep.py
+run_example_bimodal.py
+run_example_unimodal.py
+wind_data_load.py
