@@ -3,6 +3,12 @@ import matplotlib.pyplot as plt
 import chaospy as cp
 # import tikzplotlib
 
+'''
+Class to create an analytical example with a bimodal distribution
+Author: Carlotta Hilscher
+Date: October 2024
+'''
+
 class AnalyticalExample():
 
     def __init__(self, n_samples, y):
@@ -10,6 +16,7 @@ class AnalyticalExample():
         self.y = y
         self.normal_distribution = cp.Normal(0, 1)
 
+    ### function to calculate the PDF of the model response ###
     def calculate_pdf(self, samples_x):
         samples_x_np = np.asarray(samples_x)[:, np.newaxis]
 
@@ -21,7 +28,6 @@ class AnalyticalExample():
 
         mean1 = 0.8 * (5 * np.sin(np.pi * samples_x_np) ** 2 + 5 * samples_x_np - 2.5)
         sigma1 = 0.8
-        pdf_values_12 = 0.4 * ( 1 / (sigma1 * np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((self.y - mean1) / sigma1) ** 2))
 
         pdf = 0.5 * pdf_values_1 + 0.75 * pdf_values_2
 
@@ -39,6 +45,8 @@ class AnalyticalExample():
 
         return pdf, mean_1, mean_2, sigma_1, sigma_2, mean_12, sigma_12
     
+
+    ### function to create data points ###
     def create_data_points(self, mean_1, mean_2, sigma_1, sigma_2, samples_plot, samples_x):
         
         samples_uni = np.random.uniform(0, 1, (samples_x.shape[0], samples_plot))
@@ -50,18 +58,9 @@ class AnalyticalExample():
         samples_y = np.where(mask, samples_1, samples_2)
 
         return samples_y
-
-
-    # def create_data_points1(self, pdf):
-    #     pdf_normalized = pdf / np.sum(pdf, axis=1, keepdims=True) # normalize PDF
-    #     cdf = np.cumsum(pdf_normalized, axis=1) # CDF
-    #     random_numbers = np.random.rand(self.n_samples) # uniform numbers between 0 and 1
-    #     samples_y = np.zeros(self.n_samples)
-    #     for i in range(self.n_samples):
-    #         samples_y[i] = np.interp(random_numbers[i], cdf[i], self.y) # inverse of the CDF to map uniform random numbers to values
-
-    #     return samples_y
     
+
+    ### function to plot the example ###
     def plot_example(self, samples_x, samples_y, mean_1, mean_2, pdf, indices):
 
         sorted_indices = np.argsort(samples_x)
@@ -82,9 +81,10 @@ class AnalyticalExample():
         plt.ylabel('y')
         plt.legend()
         plt.grid()
-        # tikzplotlib.save(rf"tex_files\analtical_example2.tex")
         plt.show()
     
+
+    ### function to plot the PDF of the model response for a specific realization x ###
     def plot_pdf(self, pdf, samples_x, indices):
         for i, x in enumerate(samples_x):
             plt.figure()
@@ -93,5 +93,4 @@ class AnalyticalExample():
             plt.xlabel('y')
             plt.ylabel('PDF')
             plt.grid()
-            #tikzplotlib.save(rf"tex_files\example_pdf_{x}.tex")
         plt.show()

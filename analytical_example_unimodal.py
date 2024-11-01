@@ -3,14 +3,21 @@ import matplotlib.pyplot as plt
 import chaospy as cp
 import tikzplotlib
 
+'''
+Class to create an analytical example with a unimodal distribution
+Author: Carlotta Hilscher
+Date: October 2024
+'''
+
 class AnalyticalExample():
 
     def __init__(self, n_samples, y):
         self.n_samples = n_samples
         self.y = y
         self.normal_distribution = cp.Normal(0, 1)
-        # self.normal_distribution = cp.Uniform(-1, 1)
 
+
+    ### function to calculate the PDF of the model response ###
     def calculate_pdf(self, samples_x):
         samples_x_np = np.asarray(samples_x)[:, np.newaxis]
         component_1 = 1.25 * self.y - (5 * np.sin(np.pi * samples_x_np) ** 2 + 5 * samples_x_np - 2.5)
@@ -22,20 +29,16 @@ class AnalyticalExample():
 
         return pdf, mean, sigma
     
+
+    ### function to create data points ###
     def create_data_points(self, mean, sigma, samples_plot, samples_x, pdf):
 
-        # samples_y = np.zeros((samples_x.shape[0], samples_plot))
-
         samples_y = np.random.normal(mean[:, np.newaxis], sigma[:, np.newaxis], (samples_x.shape[0], samples_plot))
-
-        # for i in range(samples_x.shape[0]):
-        #     dist_1 = cp.Normal(mean[i], sigma[i])
-        #     samples_1 = dist_1.sample(samples_plot)
-        #     samples_y[i, :] = samples_1[:]
 
         return samples_y
 
     
+    ### function to plot the example ###
     def plot_example(self, samples_x, samples_y, mean_1, pdf, indices):
 
         sorted_indices = np.argsort(samples_x)
@@ -53,11 +56,12 @@ class AnalyticalExample():
         plt.scatter(samples_x, samples_y, s=1, label='Data')
         plt.xlabel('x')
         plt.ylabel('y')
-        # plt.legend()
+        plt.legend()
         plt.grid()
-        # tikzplotlib.save(rf"tex_files\unimodal\example_unimodal_1500.tex")
         plt.show()
     
+
+    ### function to plot the PDF ###
     def plot_pdf(self, pdf, samples_x, indices):
         for i, x in enumerate(samples_x):
             plt.figure()
@@ -66,5 +70,4 @@ class AnalyticalExample():
             plt.xlabel('y')
             plt.ylabel('PDF')
             plt.grid()
-            #tikzplotlib.save(rf"tex_files\example_pdf_{x}.tex")
         plt.show()

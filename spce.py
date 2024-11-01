@@ -260,7 +260,7 @@ class SPCE():
         return total_cv_score
     
 
-    ### function to optimizate sigma using CV ###
+    ### function to optimize sigma using CV ###
     def compute_optimal_sigma(self, c_initial, poly, sigma_range):
 
         def objective(sigma):
@@ -277,7 +277,7 @@ class SPCE():
         return optimal_sigma
     
 
-    ### function to generat the standard PCE surrogate ###
+    ### function to generate the standard PCE surrogate ###
     def standard_pce(self, dist_X, samples_x, y, samples_tot, q):
         
         if samples_tot <=300: 
@@ -285,7 +285,7 @@ class SPCE():
         else:
             x = [samples_x[i, :300] for i in range(samples_x.shape[0])]
 
-        poly_pce = cp.generate_expansion(self.p, dist_X) #, cross_truncation=q)
+        poly_pce = cp.generate_expansion(self.p, dist_X, cross_truncation=q)
         surrogate = cp.fit_regression(poly_pce, (*x,), y) 
         
         return surrogate

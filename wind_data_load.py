@@ -158,31 +158,31 @@ for iter in range(iteration):
         mean_samples_y_test = np.mean(samples_y_test_resized, axis=0)
         std_samples_y_test = np.std(samples_y_test_resized, axis=0)
 
-        plt.figure()
-        plt.scatter(samples_x[0,:], samples_y)
-        plt.scatter(samples_x_test[0,:], samples_y_test)
-        plt.xlabel('windspeed [m/s]')
-        plt.ylabel('blade load [mm/s^2]')
-        plt.grid()
-        plt.figure()
-        plt.scatter(samples_x[1,:], samples_y)
-        plt.scatter(samples_x_test[1,:], samples_y_test)
-        plt.xlabel('turbulence intensity')
-        plt.ylabel('blade load [mm/s^2]')
-        plt.grid()
-        plt.figure()
-        plt.scatter(samples_x[2,:], samples_y)
-        plt.scatter(samples_x_test[2,:], samples_y_test)
-        plt.xlabel('rho')
-        plt.ylabel('blade load [mm/s^2]')
-        plt.grid()
-        plt.figure()
-        plt.scatter(samples_x[3,:], samples_y)
-        plt.scatter(samples_x_test[3,:], samples_y_test)
-        plt.xlabel('yaw angle')
-        plt.ylabel('blade load [mm/s^2]')
-        plt.grid()
-        plt.show()
+        # plt.figure()
+        # plt.scatter(samples_x[0,:], samples_y)
+        # plt.scatter(samples_x_test[0,:], samples_y_test)
+        # plt.xlabel('windspeed [m/s]')
+        # plt.ylabel('blade load [mm/s^2]')
+        # plt.grid()
+        # plt.figure()
+        # plt.scatter(samples_x[1,:], samples_y)
+        # plt.scatter(samples_x_test[1,:], samples_y_test)
+        # plt.xlabel('turbulence intensity')
+        # plt.ylabel('blade load [mm/s^2]')
+        # plt.grid()
+        # plt.figure()
+        # plt.scatter(samples_x[2,:], samples_y)
+        # plt.scatter(samples_x_test[2,:], samples_y_test)
+        # plt.xlabel('rho')
+        # plt.ylabel('blade load [mm/s^2]')
+        # plt.grid()
+        # plt.figure()
+        # plt.scatter(samples_x[3,:], samples_y)
+        # plt.scatter(samples_x_test[3,:], samples_y_test)
+        # plt.xlabel('yaw angle')
+        # plt.ylabel('blade load [mm/s^2]')
+        # plt.grid()
+        # plt.show()
 
         # plt.figure()
         # # plt.scatter(samples_x[0,:], samples_y, s=1)
@@ -235,7 +235,7 @@ for iter in range(iteration):
         input_x_start = [samples_x[0,:], samples_x[1,:], samples_x[2,:], samples_x[3,:]]
         input_x = [samples_x[0,:, np.newaxis], samples_x[1,:, np.newaxis], samples_x[2,:, np.newaxis], samples_x[3,:, np.newaxis]]
 
-        surrogate_q0, poly_initial = spce.start_c(input_x_start)
+        surrogate_q0, poly_initial = spce.start_c(samples_x)
 
         optimized_c = poly_initial.coefficients
         polynomials = cp.prod(poly_initial.indeterminants**poly_initial.exponents, axis=-1)
@@ -253,7 +253,7 @@ for iter in range(iteration):
         surrogate_pce_std = spce.standard_pce(dist_X, samples_pce_x, samples_pce_std_y, q)
         ######################################################################
 
-        error_loo = spce.loo_error(samples_y, surrogate_q0, input_x_start)
+        error_loo = spce.loo_error(samples_y, surrogate_q0, samples_x)
 
         sigma_range = (0.1 * np.sqrt(error_loo), 1 * np.sqrt(error_loo))
         # print(sigma_range)
@@ -264,7 +264,7 @@ for iter in range(iteration):
 
         for sigma_noise_i in sigma_noise_sorted:
             print('sigma_i = ', sigma_noise_i)
-            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise_i, optimized_c, polynomials, input_x)
+            optimized_c, message = spce.compute_optimal_c(samples_y, sigma_noise_i, optimized_c, polynomials, samples_x)
             print(optimized_c)
             print(message)
 
@@ -286,9 +286,9 @@ for iter in range(iteration):
         
         for i in range(7):
             print('iteration = ', i)
-            sigma_noise = spce.optimize_sigma(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x, sigma_range)
+            sigma_noise = spce.optimize_sigma(samples_y, optimized_c, polynomials, samples_x, sigma_range)
             # spce.plot_sigma(samples_x, samples_y, sigma_range, optimized_c, polynomials, input_x)
-            optimized_c, message = spce.compute_optimal_c(samples_x, samples_y, sigma_noise, optimized_c, polynomials, input_x)
+            optimized_c, message = spce.compute_optimal_c(samples_y, sigma_noise, optimized_c, polynomials, samples_x)
 
         # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_pq/c_q{q}_p{p}_Nq{N_q}_mle.npy', optimized_c)
         # np.save(f'C:/Users/carlo/Masterarbeit/Masterarbeit/solutions_wind/load/convergence_pq/sigma_q{q}_p{p}_Nq{N_q}_mle.npy', sigma_noise)
@@ -450,7 +450,7 @@ plt.xlabel(r'$N$')
 plt.ylabel('nRMSE std')
 plt.grid()
 plt.yscale('log')
-tikzplotlib.save(rf"tex_files\wind_data\samples\sdv_nrmse_sdv_test{samples_total[0]}_{samples_total[-1]}.tex")
+# tikzplotlib.save(rf"tex_files\wind_data\samples\sdv_nrmse_sdv_test{samples_total[0]}_{samples_total[-1]}.tex")
 plt.show()
 
 print('x = ', samples_x_test[index_input_x,:size_y_test][x_index_plot])
